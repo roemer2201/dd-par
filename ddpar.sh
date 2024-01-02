@@ -271,7 +271,7 @@ function size_calculation {
     done
     exit 1
   else
-    echo "All size seem even."
+    echo "All sizes seem even."
   fi
 }
 
@@ -285,8 +285,9 @@ size_calculation
 if [ $REMOTE -eq 1 ]; then
   is_ssh_socket_alive
   if [ $? -ne 0 ]; then
+    echo "Not yet implemented, please support at https://github.com/roemer2201/ddpar"
     connect_ssh
-    # check_commands_availability
+    # check_commands_availability, auf local und remote ausführen
     # Variablen übergeben, zB. $COMPRESSION usw.
   fi    
 fi
@@ -318,7 +319,7 @@ case $MODE in
             # Hier kannst du den Code für den Klonvorgang einfügen
             echo "ToDo: Klonvorgang programmieren."
         else
-            echo "Fehler: Eingabegröße (${INPUT_SIZE}) ist größer als Ausgabegröße (${OUTPUT_SIZE})."
+            echo "Fehler: Eingabegröße (${INPUT_SIZE}) ist größer als Ausgabegröße (${OUTPUT_SIZE}). Bitte stelle ein anderes Zielgerät bereit."
             # Hier kannst du den Code für den Fehlerfall des Größenverhältnisses einfügen
             exit 1
         fi
@@ -347,7 +348,9 @@ case $MODE in
         
         # Write metadata file
         if [ -f ${METADATA_FILE} ]; then
-          cat /dev/null > ${METADATA_FILE}
+            echo "Metadatafile already exists, copying it to ${METADATA_FILE}.old"
+            cp -p ${METADATA_FILE} ${METADATA_FILE}.old
+            cat /dev/null > ${METADATA_FILE}
         fi
 
         echo "NUM_JOBS=${NUM_JOBS}" >> ${METADATA_FILE}
