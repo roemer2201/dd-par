@@ -47,10 +47,13 @@ function option_analysis {
       j) NUM_JOBS="${OPTARG}";;
       b) BLOCKSIZEBYTES="${OPTARG}";;
       c)
-        COMPRESSION=1 
+	    COMPRESSION=1
+		echo "COMPRESSION enabled."
         if [ -n "${OPTARG}" ]; then
           COMPRESSION_LEVEL="${OPTARG}"
+		  echo "COMPRESSION_LEVEL is set to ${OPTARG}"
         else
+		  echo "COMPRESSION_LEVEL defaults to ${OPTARG}"
           COMPRESSION_LEVEL="6"
         fi
         ;;
