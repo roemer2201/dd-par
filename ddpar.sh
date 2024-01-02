@@ -303,13 +303,13 @@ case $MODE in
     "clone")
         echo "Prüfe Klon-Parameter."
         if (( INPUT_SIZE <= OUTPUT_SIZE )); then
-            if [[ "${INPUT_TYPE}" != "block special"* ]]; then
+            if [[ "${INPUT_FILE_TYPE}" != "block special"* ]]; then
                 echo "Fehler: Ungültige Eingabe-Typ. Erforderlich: block special. Nur Block-Geräte können geklont werden."
                 # Hier kannst du den Code für den Fehlerfall des Eingabe-Typs einfügen
                 exit 1
             fi
             
-            if [[ "${OUTPUT_TYPE}" != "block special"* ]]; then
+            if [[ "${OUTPUT_FILE_TYPE}" != "block special"* ]]; then
                 echo "Fehler: Ungültige Ausgabe-Typ. Erforderlich: block special. Beim Klonen muss das Ziel ebenfalls ein Block-Gerät sein"
                 # Hier kannst du den Code für den Fehlerfall des Ausgabe-Typs einfügen
                 exit 1
