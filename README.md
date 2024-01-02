@@ -1,2 +1,2 @@
-# dd-par
-An attempt for a parallel dd
+# ddpar
+Attempting scripted parallel dd execution.
