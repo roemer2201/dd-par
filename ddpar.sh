@@ -54,7 +54,7 @@ function option_analysis {
           COMPRESSION_LEVEL="${OPTARG}"
 		  echo "COMPRESSION_LEVEL is set to ${OPTARG}"
         else
-		  echo "COMPRESSION_LEVEL defaults to ${OPTARG}"
+		  echo "COMPRESSION_LEVEL defaults to -6"
           COMPRESSION_LEVEL="6"
         fi
         ;;
