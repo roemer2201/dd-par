@@ -39,7 +39,7 @@ function show_help {
 
 function option_analysis {
   # Verwendung von getopts zur Verarbeitung der Optionen
-  while getopts ":i:o:m:j:b:c:::r::R:sh" opt; do
+  while getopts ":i:o:m:j:b:c:r::R:sh" opt; do
     case $opt in
       i) INPUT="${OPTARG}";;
       o) OUTPUT="${OPTARG}";;
