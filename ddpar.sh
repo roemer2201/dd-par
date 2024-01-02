@@ -24,7 +24,7 @@ function show_help {
   echo "-m clone|backup         Ziel des Vorgangs (Default: clone)"
   echo "-j NUM                  Die Anzahl der Jobs (Default: 4)"
   echo "-b NUM                  Die Blockgröße in Bytes (Default: 1048576 Bytes (1 MiB))"
-  echo "-c [NUM]                Komprimierung anfordern, optional setzt NUM das Kompressionslevel (Default: -6)"
+  echo "-c                      Komprimierung anfordern, Kompressionslevel zur Zeit nicht einstellbar (Default: -6)"
   echo "-s                      Checksumme der einzelnen Teile erstellen"
   echo "-r [lnc]                Remote-Verbindung, nur SSH möglich. Remote-Optionen: siehe unten"
   echo "-R user@host            Angabe des Remote-Host"
@@ -39,8 +39,8 @@ function show_help {
 
 function option_analysis {
   # Verwendung von getopts zur Verarbeitung der Optionen
-  echo "Analysiere gegebene Optionen $*"
-  while getopts ":i:o:m:j:b:c:r::R:sh" opt; do
+  echo "Analysiere gegebene Optionen \"$*\""
+  while getopts ":i:o:m:j:b:r::R:csh" opt; do
     case $opt in
       i) INPUT="${OPTARG}";;
       o) OUTPUT="${OPTARG}";;
