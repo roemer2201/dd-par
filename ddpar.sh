@@ -39,6 +39,7 @@ function show_help {
 
 function option_analysis {
   # Verwendung von getopts zur Verarbeitung der Optionen
+  echo "Analysiere gegebene Optionen $*"
   while getopts ":i:o:m:j:b:c:r::R:sh" opt; do
     case $opt in
       i) INPUT="${OPTARG}";;
@@ -282,7 +283,7 @@ function size_calculation {
 ################
 # Script Start #
 ################
-option_analysis $@
+option_analysis "$@"
 input_analysis
 size_calculation
 if [ $REMOTE -eq 1 ]; then
