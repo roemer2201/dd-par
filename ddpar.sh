@@ -48,7 +48,7 @@ function option_analysis {
       b) BLOCKSIZEBYTES="${OPTARG}";;
       c)
         COMPRESSION=1 
-        if [[ -n ${OPTARG} ]]; then
+        if [ -n ${OPTARG} ]; then
           COMPRESSION_LEVEL="${OPTARG}"
         else
           COMPRESSION_LEVEL="6"
