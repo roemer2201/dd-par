@@ -48,7 +48,7 @@ function option_analysis {
       b) BLOCKSIZEBYTES="${OPTARG}";;
       c)
         COMPRESSION=1 
-        if [ -n ${OPTARG} ]; then
+        if [ -n "${OPTARG}" ]; then
           COMPRESSION_LEVEL="${OPTARG}"
         else
           COMPRESSION_LEVEL="6"
@@ -372,6 +372,9 @@ case $MODE in
           FULL_CMD="${FULL_CMD} | $CHECKSUM_CMD"
         fi
         if [ $COMPRESSION -eq 1 ]; then
+		  echo "Compression is enabled with \$COMPRESSION_LEVEL ${COMPRESSION_LEVEL}"
+		  # Append compression level to metadata file
+		  echo "COMPRESSION_LEVEL=${COMPRESSION_LEVEL}" >> ${METADATA_FILE}
           COMPRESSION_CMD="gzip -${COMPRESSION_LEVEL} > ${OUTPUT_FILE}${PART_NUM}.gz"
           FULL_CMD="${FULL_CMD} | $COMPRESSION_CMD &"
         else
