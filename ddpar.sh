@@ -302,27 +302,25 @@ echo "Initialisierung erfolgreich"
 case $MODE in
     "clone")
         echo "Prüfe Klon-Parameter."
+        if [[ "${INPUT_FILE_TYPE}" != "block special"* ]]; then
+            echo "Fehler: Ungültige Eingabe-Typ. Erforderlich: block special. Nur Block-Geräte können geklont werden."
+            # Hier kannst du den Code für den Fehlerfall des Eingabe-Typs einfügen
+            exit 1
+        fi
+        
+        if [[ "${OUTPUT_FILE_TYPE}" != "block special"* ]]; then
+            echo "Fehler: Ungültige Ausgabe-Typ. Erforderlich: block special. Beim Klonen muss das Ziel ebenfalls ein Block-Gerät sein"
+            # Hier kannst du den Code für den Fehlerfall des Ausgabe-Typs einfügen
+            exit 1
+        fi
         if (( INPUT_SIZE <= OUTPUT_SIZE )); then
-            if [[ "${INPUT_FILE_TYPE}" != "block special"* ]]; then
-                echo "Fehler: Ungültige Eingabe-Typ. Erforderlich: block special. Nur Block-Geräte können geklont werden."
-                # Hier kannst du den Code für den Fehlerfall des Eingabe-Typs einfügen
-                exit 1
-            fi
-            
-            if [[ "${OUTPUT_FILE_TYPE}" != "block special"* ]]; then
-                echo "Fehler: Ungültige Ausgabe-Typ. Erforderlich: block special. Beim Klonen muss das Ziel ebenfalls ein Block-Gerät sein"
-                # Hier kannst du den Code für den Fehlerfall des Ausgabe-Typs einfügen
-                exit 1
-            fi
-            
-            echo "Klonvorgang kann durchgeführt werden."
-            # Hier kannst du den Code für den Klonvorgang einfügen
-            echo "ToDo: Klonvorgang programmieren."
-        else
             echo "Fehler: Eingabegröße (${INPUT_SIZE}) ist größer als Ausgabegröße (${OUTPUT_SIZE}). Bitte stelle ein anderes Zielgerät bereit."
             # Hier kannst du den Code für den Fehlerfall des Größenverhältnisses einfügen
             exit 1
         fi
+        echo "Klonvorgang kann durchgeführt werden."
+        # Hier kannst du den Code für den Klonvorgang einfügen
+        echo "ToDo: Klonvorgang programmieren."
         ;;
     "backup")
         if [[ "${OUTPUT_FILE_TYPE}" != *"directory"* ]]; then
