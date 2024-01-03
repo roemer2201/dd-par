@@ -31,11 +31,34 @@ done
 
 
 function restore_split_image {
-  for ((i=0; i<$NUM_JOBS; i++)); do
-    START=$((i * SPLIT_SIZE))
-    touch $OUTPUT_FILE
-    echo "zcat ${INPUT_FILES}${i}.gz | dd of=$OUTPUT_FILE bs=$BLOCKSIZEBYTES seek=$((START / BLOCKSIZEBYTES)) &"
-    zcat ${INPUT_FILES}${i}.gz | dd of=$OUTPUT_FILE bs=$BLOCKSIZEBYTES seek=$((START / BLOCKSIZEBYTES)) &
+#  for ((i=0; i<$NUM_JOBS; i++)); do
+#    START=$((i * SPLIT_SIZE))
+#    touch $OUTPUT_FILE
+#    echo "zcat ${INPUT_FILES}${i}.gz | dd of=$OUTPUT_FILE bs=$BLOCKSIZEBYTES seek=$((START / BLOCKSIZEBYTES)) &"
+#    zcat ${INPUT_FILES}${i}.gz | dd of=$OUTPUT_FILE bs=$BLOCKSIZEBYTES seek=$((START / BLOCKSIZEBYTES)) &
+#  done
+
+  echo "Starte die Prozesse ..."
+  for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
+    # Build individual subcommands and concatinate, if enabled
+    if [ ! -z $COMPRESSION ]; then
+      if [ $PART_NUM -eq 0 ]; then
+        echo "Source is compressed"
+      fi
+      INPUT_CMD="zcat ${INPUT_FILES}${PART_NUM}.gz"
+    else
+      if [ $PART_NUM -eq 0 ]; then
+        echo "Source is uncompressed"
+      fi
+      INPUT_CMD="dd if=${INPUT_FILES}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
+    fi
+    START=$((PART_NUM * SPLIT_SIZE))
+    FULL_CMD="${INPUT_CMD}"
+    OUTPUT_CMD="dd if=${OUTPUT_FILE} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
+    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD "
+    fallocate -l ${INPUT_SIZE} $OUTPUT_FILE
+    echo "$FULL_CMD"
+    eval $FULL_CMD
   done
 }
 
@@ -56,10 +79,13 @@ if [ ! -e "$METADATA_FILE" ]; then
   exit 1
 fi
 NUM_JOBS=$(grep "NUM_JOBS" $METADATA_FILE | cut -d "=" -f 2)
+FILE_NAME=$(grep "FILE_NAME" $METADATA_FILE | cut -d "=" -f 2)
 SPLIT_SIZE=$(grep "SPLIT_SIZE" $METADATA_FILE | cut -d "=" -f 2)
 INPUT_SIZE=$(grep "INPUT_SIZE" $METADATA_FILE | cut -d "=" -f 2)
 INPUT_FILE_TYPE=$(grep "FILE_TYPE" $METADATA_FILE | cut -d "=" -f 2)
 BLOCKSIZEBYTES=$(grep "BLOCKSIZEBYTES" $METADATA_FILE | cut -d "=" -f 2)
+COMPRESSION=$(grep "COMPRESSION" $METADATA_FILE | cut -d "=" -f 2)
+COMPRESSION_LEVEL=$(grep "COMPRESSION_LEVEL" $METADATA_FILE | cut -d "=" -f 2)
 
 # Überprüfung der erforderlichen Parameter
 if [ -z "$INPUT_PATH" ] || [ -z "$INPUT_FILE_BASENAME" ] || [ -z "$OUTPUT" ]; then

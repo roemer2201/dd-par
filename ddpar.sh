@@ -369,6 +369,7 @@ case $MODE in
         for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
 
         # Build individual subcommands and concatinate, if enabled
+        START=$((PART_NUM * SPLIT_SIZE))
         INPUT_CMD="dd if=${INPUT} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
         FULL_CMD="${INPUT_CMD}"
         if [ $CHECKSUM -eq 1 ]; then
@@ -376,18 +377,20 @@ case $MODE in
           FULL_CMD="${FULL_CMD} | $CHECKSUM_CMD"
         fi
         if [ $COMPRESSION -eq 1 ]; then
-		  echo "Compression is enabled with \$COMPRESSION_LEVEL ${COMPRESSION_LEVEL}"
-		  # Append compression level to metadata file
-		  echo "COMPRESSION_LEVEL=${COMPRESSION_LEVEL}" >> ${METADATA_FILE}
-          COMPRESSION_CMD="gzip -${COMPRESSION_LEVEL} > ${OUTPUT_FILE}${PART_NUM}.gz"
-          FULL_CMD="${FULL_CMD} | $COMPRESSION_CMD &"
+            if [ $PART_NUM -eq 0 ]; then
+                #echo "Compression is enabled with \$COMPRESSION_LEVEL ${COMPRESSION_LEVEL}"
+                # Append compression and its level to metadata file
+                echo "COMPRESSION=${COMPRESSION}" >> ${METADATA_FILE}
+                echo "COMPRESSION_LEVEL=${COMPRESSION_LEVEL}" >> ${METADATA_FILE}
+            fi
+            COMPRESSION_CMD="gzip -${COMPRESSION_LEVEL} > ${OUTPUT_FILE}${PART_NUM}.gz"
+            FULL_CMD="${FULL_CMD} | $COMPRESSION_CMD &"
         else
-          OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
-          FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
+            OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
+            FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
         fi
-
-          echo "$FULL_CMD"
-          eval $FULL_CMD
+        echo "$FULL_CMD"
+        eval $FULL_CMD
         done
         
         
