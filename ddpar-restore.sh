@@ -50,12 +50,14 @@ function restore_split_image {
       if [ $PART_NUM -eq 0 ]; then
         echo "Source is uncompressed"
       fi
-      INPUT_CMD="dd if=${INPUT_FILES}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
+      INPUT_CMD="dd if=${INPUT_FILES}${PART_NUM}.part bs=${BLOCKSIZEBYTES} iflag=fullblock"
     fi
     START=$((PART_NUM * SPLIT_SIZE))
     FULL_CMD="${INPUT_CMD}"
-    OUTPUT_CMD="dd if=${OUTPUT_FILE} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
-    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD "
+    OUTPUT_CMD="dd of=${OUTPUT_FILE} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES})) iflag=fullblock"
+    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
+    #touch $OUTPUT_FILE
+    echo "fallocate -l ${INPUT_SIZE} $OUTPUT_FILE"
     fallocate -l ${INPUT_SIZE} $OUTPUT_FILE
     echo "$FULL_CMD"
     eval $FULL_CMD
