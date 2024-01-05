@@ -54,7 +54,7 @@ function restore_split_image {
     fi
     START=$((PART_NUM * SPLIT_SIZE))
     FULL_CMD="${INPUT_CMD}"
-    OUTPUT_CMD="dd of=${OUTPUT_FILE} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES})) iflag=fullblock"
+    OUTPUT_CMD="dd of=${OUTPUT_FILE} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) seek=$((START / ${BLOCKSIZEBYTES})) iflag=fullblock"
     FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
     #touch $OUTPUT_FILE
     echo "fallocate -l ${INPUT_SIZE} $OUTPUT_FILE"
