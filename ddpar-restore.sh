@@ -56,9 +56,11 @@ function restore_split_image {
     FULL_CMD="${INPUT_CMD}"
     OUTPUT_CMD="dd of=${OUTPUT_FILE} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) seek=$((START / ${BLOCKSIZEBYTES})) iflag=fullblock"
     FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
-    #touch $OUTPUT_FILE
-    echo "fallocate -l ${INPUT_SIZE} $OUTPUT_FILE"
-    fallocate -l ${INPUT_SIZE} $OUTPUT_FILE
+    if [[ ${OUTPUT_FILE_TYPE} != "block special"* ]]; then
+      #touch $OUTPUT_FILE
+      echo "fallocate -l ${INPUT_SIZE} $OUTPUT_FILE"
+      fallocate -l ${INPUT_SIZE} $OUTPUT_FILE
+    fi
     echo "$FULL_CMD"
     eval $FULL_CMD
   done
