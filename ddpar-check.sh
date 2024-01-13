@@ -31,11 +31,11 @@ function check_restored_image {
 }
 
 # Verwendung von getopts zur Verarbeitung der Optionen
-while getopts ":p:n:h" opt; do
+while getopts ":p:n:d:h" opt; do
   case $opt in
-    p|-path) INPUT_PATH="$OPTARG";;
-    n|-name) INPUT_FILE_BASENAME="$OPTARG";;
-    d) DESTINATION="$OPTARG" ;;
+    p|-path) echo "Set INPUT_PATH=$OPTARG"; INPUT_PATH="$OPTARG";;
+    n|-name) echo "Set INPUT_FILE_BASENAME=$OPTARG"; INPUT_FILE_BASENAME="$OPTARG";;
+    d) echo "Set DESTINATION=$OPTARG"; DESTINATION="$OPTARG" ;;
     h|-help) show_help; exit 0;;
     \?) echo "Ungültige Option: -$OPTARG";;
   esac
@@ -55,7 +55,7 @@ OUTPUT_FILE_TYPE="$(file -b $DESTINATION)"
 
 echo ${INPUT_PATH}
 echo ${INPUT_FILE_BASENAME}
-echo ${INPUT_FILES}*
+echo ${INPUT_FILES}\*
 
 # Get parameters from metadata file
 NUM_JOBS=$(grep "NUM_JOBS" $METADATA_FILE | cut -d "=" -f 2)
@@ -64,6 +64,8 @@ INPUT_FILE_TYPE=$(grep "FILE_TYPE" $METADATA_FILE | cut -d "=" -f 2)
 BLOCKSIZEBYTES=$(grep "BLOCKSIZEBYTES" $METADATA_FILE | cut -d "=" -f 2)
 
 echo ${INPUT_FILE_TYPE}
+echo "DESTINATION: $DESTINATION"
+echo "OUTPUT_FILE: ${OUTPUT_FILE}"
 echo ${OUTPUT_FILE_TYPE}
 if [[ "${INPUT_FILE_TYPE}" == "block special"* ]] && [[ "${OUTPUT_FILE_TYPE}" == "block special"* ]]; then
   echo "Beginning to check ..."
@@ -74,4 +76,3 @@ if [[ "${INPUT_FILE_TYPE}" != "block special"* ]] && [[ "${OUTPUT_FILE_TYPE}" !=
   check_restored_image
 fi
 wait
-
