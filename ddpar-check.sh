@@ -12,14 +12,14 @@ INPUT_FILE_BASENAME=""
 
 function show_help {
   SCRIPT_NAME=$(basename "$0")
-  echo "$SCRIPT_NAME - Ein Bash-Skript zur Verarbeitung von Parametern"
+  echo "$SCRIPT_NAME - Verify consistency of source, backup or destination."
   echo "Verwendung: $SCRIPT_NAME [Optionen]"
   echo ""
   echo "Optionen:"
-  echo "-p, --path PATH         Speicherort des Splitimages"
-  echo "-n, --name NAME         Der Basisname des geteilten Abbildes"
-  echo "-d                      Destination to compare against"
-  echo "-h, --help              Zeigt diese Hilfemeldung an"
+  echo "-b PATH         Der Basisname (opt. mit Pfad) des geteilten Abbildes"
+  echo "-s PATH         Source to compare against"
+  echo "-d PATH         Destination to compare against"
+  echo "-h, --help      Zeigt diese Hilfemeldung an"
 }
 
 function check_restored_image {
@@ -31,10 +31,14 @@ function check_restored_image {
 }
 
 # Verwendung von getopts zur Verarbeitung der Optionen
-while getopts ":p:n:d:h" opt; do
+while getopts ":b:s:d:h" opt; do
   case $opt in
-    p|-path) echo "Set INPUT_PATH=$OPTARG"; INPUT_PATH="$OPTARG";;
-    n|-name) echo "Set INPUT_FILE_BASENAME=$OPTARG"; INPUT_FILE_BASENAME="$OPTARG";;
+    b)
+        INPUT_PATH=$(dirname $(realpath "$OPTARG")); echo "Set INPUT_PATH=${INPUT_PATH}"
+	INPUT_FILE_BASENAME=$(basename $(realpath "$OPTARG")); echo "Set INPUT_FILE_BASENAME=${INPUT_FILE_BASENAME}"
+        ;;
+       
+#    n) echo "Set INPUT_FILE_BASENAME=$OPTARG"; INPUT_FILE_BASENAME="$OPTARG";; # Not needed anymore due to combined b ( = p + n )
     d) echo "Set DESTINATION=$OPTARG"; DESTINATION="$OPTARG" ;;
     h|-help) show_help; exit 0;;
     \?) echo "Ungültige Option: -$OPTARG";;
@@ -42,6 +46,9 @@ while getopts ":p:n:d:h" opt; do
 done
 
 # Überprüfung der erforderlichen Parameter
+# Extend the check to be able to compare one of source <-> backup, backup <-> destination, source <-> destination,
+# by making sure, that only 2 out of those 3 parameters are set.
+# Currently only backup <-> destination works.
 if [ -z "${INPUT_PATH}" ] || [ -z "${INPUT_FILE_BASENAME}" ]; then
   echo "Fehlende Parameter. Bitte geben Sie alle erforderlichen Parameter an."
   exit 1

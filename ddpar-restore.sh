@@ -41,7 +41,7 @@ function restore_split_image {
   echo "Starte die Prozesse ..."
   for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
     # Build individual subcommands and concatinate, if enabled
-    if [ ! -z $COMPRESSION ]; then
+    if [ ! -z "$COMPRESSION" ]; then
       if [ $PART_NUM -eq 0 ]; then
         echo "Source is compressed"
       fi
