@@ -26,4 +26,5 @@ Attempting scripted parallel dd execution.
 ## To Do
 - check read/write permissions for $SOURCE, $BACKUP_BASE and $DESTINATION
 - ddpar-check.sh: Add if-statement for checking if a backup as been created with a sha256sum
+- ddpar.sh: Add option to give a backup a custom BASE_NAME
 - Code to make missing features work
