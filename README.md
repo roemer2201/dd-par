@@ -6,8 +6,8 @@ Attempting scripted parallel dd execution.
 
 | | clone (check) || backup (check) | restore (check) |
 |----------|----------|-|----------|----------|
-| block dev | :stop_sign: (:stop_sign:) || :heavy_check_mark: (:stop_sign:) | :heavy_check_mark: (:heavy_check_mark:) |
-| file | :stop_sign: (:stop_sign:) || :heavy_check_mark: (:stop_sign:) | :heavy_check_mark: (:heavy_check_mark:) |
+| block dev | :stop_sign: (:stop_sign:) || :heavy_check_mark: (:heavy_check_mark:) | :heavy_check_mark: (:heavy_check_mark:) |
+| file | :stop_sign: (:stop_sign:) || :heavy_check_mark: (:heavy_check_mark:) | :heavy_check_mark: (:heavy_check_mark:) |
 
 ### remote
 
