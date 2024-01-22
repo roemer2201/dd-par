@@ -3,22 +3,57 @@ Attempting scripted parallel dd execution.
 
 ## Usecases
 ### local
+#### uncrompressed
 
 | | clone (check) || backup (check) | restore (check) |
 |----------|----------|-|----------|----------|
 | block dev | :stop_sign: (:stop_sign:) || :heavy_check_mark: (:heavy_check_mark:) | :heavy_check_mark: (:heavy_check_mark:) |
 | file | :stop_sign: (:stop_sign:) || :heavy_check_mark: (:heavy_check_mark:) | :heavy_check_mark: (:heavy_check_mark:) |
 
-### remote - ssh
+#### compressed
+| | clone (check) || backup gzip (check) | restore gzip (check) |
+|----------|----------|-|----------|----------|
+| block dev | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+| file | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 
+<br>
+
+### remote - ssh
+#### uncompressed 
+|  | clone || backup (check) | restore (check) |
+|----------|----------|-|----------|----------|
+| block dev | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+| file | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+
+#### local [de]compression
+| | clone || backup gzip (check) | restore gzip (check) |
+|----------|----------|-|----------|----------|
+| block dev | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+| file | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+
+#### remote [de]compression
+| | clone || backup gzip (check) | restore gzip (check) |
+|----------|----------|-|----------|----------|
+| block dev | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+| file | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+
+<br>
+
+### remote - netcat
+#### uncompressed 
 | | clone || backup (check) | restore (check) |
 |----------|----------|-|----------|----------|
 | block dev | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 | file | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 
-### remote - netcat
+#### local [de]compression
+| | clone || backup gzip (check) | restore gzip (check) |
+|----------|----------|-|----------|----------|
+| block dev | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+| file | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 
-| | clone || backup (check) | restore (check) |
+#### remote [de]compression
+| | clone || backup gzip (check) | restore gzip (check) |
 |----------|----------|-|----------|----------|
 | block dev | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 | file | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
