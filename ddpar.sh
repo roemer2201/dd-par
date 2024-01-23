@@ -26,6 +26,7 @@ function show_help {
   echo "-b NUM                  Die Blockgröße in Bytes (Default: 1048576 Bytes (1 MiB))"
   echo "-c                      Komprimierung anfordern, Kompressionslevel zur Zeit nicht einstellbar (Default: -6)"
   echo "-s                      Checksumme der einzelnen Teile erstellen"
+  echo "-f                      Force - ignore mangelnden Speicherplatz auf dem Zielgerät (bei \"-m backup\")"
   echo "-r [lnc]                Remote-Verbindung, nur SSH möglich. Remote-Optionen: siehe unten"
   echo "-R user@host            Angabe des Remote-Host"
   echo "-h                      Diese Hilfe anzeigen"
@@ -40,7 +41,7 @@ function show_help {
 function option_analysis {
   # Verwendung von getopts zur Verarbeitung der Optionen
   echo "Analysiere gegebene Optionen \"$*\""
-  while getopts ":i:o:m:j:b:r::R:csh" opt; do
+  while getopts ":i:o:m:j:b:r::R:csfh" opt; do
     case $opt in
       i) INPUT="${OPTARG}";;
       o) OUTPUT="${OPTARG}";;
@@ -61,6 +62,9 @@ function option_analysis {
       s)
         CHECKSUM=1
         ;;
+      f)
+	FORCEBACKUP=1
+	;;
       r)
         REMOTE=1
         if [[ ${OPTARG} =~ ^[lnc]+$ ]]; then
@@ -334,11 +338,13 @@ case $MODE in
         fi
         # Freier Speicher im Zielpfad analysieren
         FREE_SPACE=$(df -P -B 1 "${OUTPUT}" | awk 'NR==2 {print $4}')
-        if (( INPUT_SIZE > FREE_SPACE )); then
+        if [ -z "$FORCEBACKUP" ] && (( INPUT_SIZE > FREE_SPACE )); then
             echo "Fehler: Eingabegröße (${INPUT_SIZE}) überschreitet den verfügbaren Speicherplatz (${FREE_SPACE})."
-            # Hier kannst du den Code für den Fehlerfall des Speicherplatzes einfügen
             exit 1
         fi
+	if [ ! -z "$FORCEBACKUP" ] && (( INPUT_SIZE > FREE_SPACE )); then
+            echo "Warnung: Eingabegröße (${INPUT_SIZE}) überschreitet den verfügbaren Speicherplatz (${FREE_SPACE}). Mit aktiver Komprimierung koennte es dennoch passen."
+	fi
         
         echo "Führe die Backup-Aktion durch."
 
