@@ -13,7 +13,7 @@ Attempting scripted parallel dd execution.
 #### compressed
 | | clone (check) || backup gzip (check) | restore gzip (check) |
 |----------|----------|-|----------|----------|
-| block dev | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+| block dev | :stop_sign: (:stop_sign:) || :heavy_check_mark: (:heavy_check_mark:) | :stop_sign: (:stop_sign:) |
 | file | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 
 <br>
@@ -63,5 +63,5 @@ Attempting scripted parallel dd execution.
 - ddpar-check.sh: Add if-statement for checking if a backup as been created with a sha256sum
 - ddpar.sh: Add option to give a backup a custom BASE_NAME
 - echo a message if no reasonable alternative number of threads/jobs could be calculated
-- when compressing an image and option -c (checksum) is given, should the script calculate the checksum of both, the raw file and the compressed file?
+- when compressing an image and option -c (checksum) is given, should the script calculate the checksum of both, the raw file and the compressed file? (Currently only basefile's checksum is calculated.)
 - Code to make missing features work
