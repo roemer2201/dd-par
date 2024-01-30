@@ -207,10 +207,10 @@ function input_analysis {
   if [[ "${INPUT_FILE_TYPE}" == "block special"* ]]; then
     #echo "INPUT_SIZE=$(blockdev --getsize64 $INPUT)"
     INPUT_SIZE=$(blockdev --getsize64 ${INPUT})
-    #echo $INPUT_SIZE
+    echo "\$INPUT_SIZE=${INPUT_SIZE=}"
   else
     INPUT_SIZE=$(stat -c %s ${INPUT})
-    #echo $INPUT_SIZE
+    echo "\$INPUT_SIZE=${INPUT_SIZE=}"
   fi
 }
 
@@ -222,7 +222,6 @@ function output_analysis {
   # Use the appropriate command to calculate the size of the output file
   echo "\$OUTPUT_FILE_TYPE: ${OUTPUT_FILE_TYPE}"
   if [[ "${OUTPUT_FILE_TYPE}" == "block special"* ]]; then
-    echo "OUTPUT_SIZE=$(blockdev --getsize64 $OUTPUT)"
     OUTPUT_SIZE=$(blockdev --getsize64 ${OUTPUT})
     echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
   else
@@ -321,14 +320,46 @@ case $MODE in
             # Hier kannst du den Code für den Fehlerfall des Ausgabe-Typs einfügen
             exit 1
         fi
-        if (( INPUT_SIZE <= OUTPUT_SIZE )); then
+        if (( INPUT_SIZE > OUTPUT_SIZE )); then
             echo "Fehler: Eingabegröße (${INPUT_SIZE}) ist größer als Ausgabegröße (${OUTPUT_SIZE}). Bitte stelle ein anderes Zielgerät bereit."
             # Hier kannst du den Code für den Fehlerfall des Größenverhältnisses einfügen
             exit 1
         fi
         echo "Klonvorgang kann durchgeführt werden."
-        # Hier kannst du den Code für den Klonvorgang einfügen
-        echo "ToDo: Klonvorgang programmieren."
+        echo "Starte die Prozesse ..."
+        for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
+
+        # Build individual subcommands and concatinate, if enabled
+        START=$((PART_NUM * SPLIT_SIZE))
+        INPUT_CMD="dd if=${INPUT} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
+        FULL_CMD="${INPUT_CMD}"
+        # ToDo: create Metadata directory and write Checksum-Files
+        #if [ $CHECKSUM -eq 1 ]; then
+        #  CHECKSUM_CMD="tee >(sha256sum > ${OUTPUT_FILE}${PART_NUM}.sha256)"
+        #  FULL_CMD="${FULL_CMD} | $CHECKSUM_CMD"
+        #fi
+        # ToDo: Compression only makes sense when transfering to remote location, implement later (this is just a copy from backup mode)
+        #if [ $COMPRESSION -eq 1 ]; then
+        #    if [ $PART_NUM -eq 0 ]; then
+        #        #echo "Compression is enabled with \$COMPRESSION_LEVEL ${COMPRESSION_LEVEL}"
+        #        # Append compression and its level to metadata file
+        #        echo "COMPRESSION=${COMPRESSION}" >> ${METADATA_FILE}
+        #        echo "COMPRESSION_LEVEL=${COMPRESSION_LEVEL}" >> ${METADATA_FILE}
+        #    fi
+        #    COMPRESSION_CMD="gzip -${COMPRESSION_LEVEL} > ${OUTPUT_FILE}${PART_NUM}.gz"
+        #    FULL_CMD="${FULL_CMD} | $COMPRESSION_CMD &"
+        #else
+        #    OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
+        #    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
+        #fi
+        OUTPUT_CMD="dd of=${OUTPUT} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
+        FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
+        echo "$FULL_CMD"
+        eval $FULL_CMD
+        done
+        
+        # Wait for all jobs to finish
+        wait
         ;;
     "backup")
         if [[ "${OUTPUT_FILE_TYPE}" != *"directory"* ]]; then
