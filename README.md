@@ -8,7 +8,7 @@ Attempting scripted parallel dd execution.
 | | clone (check) || backup (check) | restore (check) |
 |----------|----------|-|----------|----------|
 | block dev | :heavy_check_mark: (:stop_sign:) || :heavy_check_mark: (:heavy_check_mark:) | :heavy_check_mark: (:heavy_check_mark:) |
-| file | :stop_sign: (:stop_sign:) || :heavy_check_mark: (:heavy_check_mark:) | :heavy_check_mark: (:heavy_check_mark:) |
+| file | :heavy_check_mark: (:stop_sign:) || :heavy_check_mark: (:heavy_check_mark:) | :heavy_check_mark: (:heavy_check_mark:) |
 
 #### compressed
 | | clone (check) || backup gzip (check) | restore gzip (check) |
