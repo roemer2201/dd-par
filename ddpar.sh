@@ -10,6 +10,7 @@ COMPRESSION=${COMPRESSION:-0}
 CHECKSUM=${CHECKSUM:-0}
 REMOTE=0
 SSH_SOCKET_PATH="/tmp/ssh_mux_%n_%p_%r"
+INTERNAL_EXITCODE=0
 
 
 # Hilfemeldung anzeigen
@@ -282,6 +283,97 @@ function size_calculation {
   fi
 }
 
+function clone_file {
+    # generate further spinoff variables
+    INPUT_FILE_NAME=$(basename "${INPUT}")
+
+    echo "Starting file cloning processes ..."
+    if [[ "${OUTPUT_FILE_TYPE}" == "directory" ]]; then
+        OUTPUT_PATH="${OUTPUT}/${INPUT_FILE_NAME}"
+    fi
+    for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
+
+    # Build individual subcommands and concatinate, if enabled
+    START=$((PART_NUM * SPLIT_SIZE))
+    INPUT_CMD="dd if=${INPUT} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
+    FULL_CMD="${INPUT_CMD}"
+    # ToDo: create Metadata directory and write Checksum-Files
+    #if [ $CHECKSUM -eq 1 ]; then
+    #  CHECKSUM_CMD="tee >(sha256sum > ${OUTPUT_FILE}${PART_NUM}.sha256)"
+    #  FULL_CMD="${FULL_CMD} | $CHECKSUM_CMD"
+    #fi
+    # ToDo: Compression only makes sense when transfering to remote location, implement later (this is just a copy from backup mode)
+    #if [ $COMPRESSION -eq 1 ]; then
+    #    if [ $PART_NUM -eq 0 ]; then
+    #        #echo "Compression is enabled with \$COMPRESSION_LEVEL ${COMPRESSION_LEVEL}"
+    #        # Append compression and its level to metadata file
+    #        echo "COMPRESSION=${COMPRESSION}" >> ${METADATA_FILE}
+    #        echo "COMPRESSION_LEVEL=${COMPRESSION_LEVEL}" >> ${METADATA_FILE}
+    #    fi
+    #    COMPRESSION_CMD="gzip -${COMPRESSION_LEVEL} > ${OUTPUT_FILE}${PART_NUM}.gz"
+    #    FULL_CMD="${FULL_CMD} | $COMPRESSION_CMD &"
+    #else
+    #    OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
+    #    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
+    #fi
+    OUTPUT_CMD="dd of=${OUTPUT_PATH} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
+    FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
+    echo "$FULL_CMD"
+    eval $FULL_CMD
+    done
+}
+
+function clone_block {
+    echo "Prüfe Klon-Parameter."
+    # Wird wahrscheinlich nicht mehr gebraucht:
+    #if [[ "${INPUT_FILE_TYPE}" != "block special"* ]]; then
+    #    echo "Fehler: Ungültige Eingabe-Typ. Erforderlich: block special. Nur Block-Geräte können geklont werden."
+    #    # Hier kannst du den Code für den Fehlerfall des Eingabe-Typs einfügen
+    #    exit 1
+    #fi        
+    if [[ "${OUTPUT_FILE_TYPE}" != "block special"* ]]; then
+        echo "Fehler: Ungültiger Ausgabe-Typ. Erforderlich: block special. Beim Klonen eines Block-Gerätes muss das Ziel ebenfalls ein Block-Gerät sein."
+        # Hier kannst du den Code für den Fehlerfall des Ausgabe-Typs einfügen
+        exit 1
+    fi
+    if (( INPUT_SIZE > OUTPUT_SIZE )); then
+        echo "Fehler: Eingabegröße (${INPUT_SIZE}) ist größer als Ausgabegröße (${OUTPUT_SIZE}). Bitte stelle ein anderes Zielgerät bereit."
+        # Hier kannst du den Code für den Fehlerfall des Größenverhältnisses einfügen
+        exit 1
+    fi
+    echo "Klonvorgang kann durchgeführt werden."
+    echo "Starte die Prozesse ..."
+    for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
+    # Build individual subcommands and concatinate, if enabled
+    START=$((PART_NUM * SPLIT_SIZE))
+    INPUT_CMD="dd if=${INPUT} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
+    FULL_CMD="${INPUT_CMD}"
+    # ToDo: create Metadata directory and write Checksum-Files
+    #if [ $CHECKSUM -eq 1 ]; then
+    #  CHECKSUM_CMD="tee >(sha256sum > ${OUTPUT_FILE}${PART_NUM}.sha256)"
+    #  FULL_CMD="${FULL_CMD} | $CHECKSUM_CMD"
+    #fi
+    # ToDo: Compression only makes sense when transfering to remote location, implement later (this is just a copy from backup mode)
+    #if [ $COMPRESSION -eq 1 ]; then
+    #    if [ $PART_NUM -eq 0 ]; then
+    #        #echo "Compression is enabled with \$COMPRESSION_LEVEL ${COMPRESSION_LEVEL}"
+    #        # Append compression and its level to metadata file
+    #        echo "COMPRESSION=${COMPRESSION}" >> ${METADATA_FILE}
+    #        echo "COMPRESSION_LEVEL=${COMPRESSION_LEVEL}" >> ${METADATA_FILE}
+    #    fi
+    #    COMPRESSION_CMD="gzip -${COMPRESSION_LEVEL} > ${OUTPUT_FILE}${PART_NUM}.gz"
+    #    FULL_CMD="${FULL_CMD} | $COMPRESSION_CMD &"
+    #else
+    #    OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
+    #    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
+    #fi
+    OUTPUT_CMD="dd of=${OUTPUT} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
+    FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
+    echo "$FULL_CMD"
+    eval $FULL_CMD
+    done
+}
+
 
 ################
 # Script Start #
@@ -308,56 +400,20 @@ echo "Initialisierung erfolgreich"
 
 case $MODE in
     "clone")
-        echo "Prüfe Klon-Parameter."
-        if [[ "${INPUT_FILE_TYPE}" != "block special"* ]]; then
-            echo "Fehler: Ungültiger Eingabe-Typ. Erforderlich: block special. Nur Block-Geräte können geklont werden."
-            # Hier kannst du den Code für den Fehlerfall des Eingabe-Typs einfügen
-            exit 1
-        fi
-        
-        if [[ "${OUTPUT_FILE_TYPE}" != "block special"* ]]; then
-            echo "Fehler: Ungültiger Ausgabe-Typ. Erforderlich: block special. Beim Klonen muss das Ziel ebenfalls ein Block-Gerät sein"
-            # Hier kannst du den Code für den Fehlerfall des Ausgabe-Typs einfügen
-            exit 1
-        fi
-        if (( INPUT_SIZE > OUTPUT_SIZE )); then
-            echo "Fehler: Eingabegröße (${INPUT_SIZE}) ist größer als Ausgabegröße (${OUTPUT_SIZE}). Bitte stelle ein anderes Zielgerät bereit."
-            # Hier kannst du den Code für den Fehlerfall des Größenverhältnisses einfügen
-            exit 1
-        fi
-        echo "Klonvorgang kann durchgeführt werden."
-        echo "Starte die Prozesse ..."
-        for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
-
-        # Build individual subcommands and concatinate, if enabled
-        START=$((PART_NUM * SPLIT_SIZE))
-        INPUT_CMD="dd if=${INPUT} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
-        FULL_CMD="${INPUT_CMD}"
-        # ToDo: create Metadata directory and write Checksum-Files
-        #if [ $CHECKSUM -eq 1 ]; then
-        #  CHECKSUM_CMD="tee >(sha256sum > ${OUTPUT_FILE}${PART_NUM}.sha256)"
-        #  FULL_CMD="${FULL_CMD} | $CHECKSUM_CMD"
-        #fi
-        # ToDo: Compression only makes sense when transfering to remote location, implement later (this is just a copy from backup mode)
-        #if [ $COMPRESSION -eq 1 ]; then
-        #    if [ $PART_NUM -eq 0 ]; then
-        #        #echo "Compression is enabled with \$COMPRESSION_LEVEL ${COMPRESSION_LEVEL}"
-        #        # Append compression and its level to metadata file
-        #        echo "COMPRESSION=${COMPRESSION}" >> ${METADATA_FILE}
-        #        echo "COMPRESSION_LEVEL=${COMPRESSION_LEVEL}" >> ${METADATA_FILE}
-        #    fi
-        #    COMPRESSION_CMD="gzip -${COMPRESSION_LEVEL} > ${OUTPUT_FILE}${PART_NUM}.gz"
-        #    FULL_CMD="${FULL_CMD} | $COMPRESSION_CMD &"
-        #else
-        #    OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
-        #    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
-        #fi
-        OUTPUT_CMD="dd of=${OUTPUT} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
-        FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
-        echo "$FULL_CMD"
-        eval $FULL_CMD
-        done
-        
+        case ${INPUT_FILE_TYPE} in
+            "block special"*)
+                echo "Do block special cloning"
+                clone_block
+                ;;
+            "directory")
+                echo "Input-type is directory, which cannot be cloned using this script. Exiting ..."
+                INTERNAL_EXITCODE=1
+                ;;
+            *)
+                echo "Try cloning this file..."
+                clone_file
+                ;;
+        esac
         # Wait for all jobs to finish
         wait
         ;;
@@ -450,3 +506,5 @@ esac
 if [ $REMOTE -eq 1 ]; then
   close_ssh_connection
 fi
+
+exit ${INTERNAL_EXITCODE}
