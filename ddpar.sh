@@ -79,8 +79,8 @@ function option_analysis {
           REMOTE_HOST="${OPTARG}"
         fi
         ;;
-      h) show_help; exit 1;;
-      \?) echo "Ungültige Option: -${OPTARG}";;
+      h) show_help; exit 0;;
+      \?) echo "Ungültige Option: -${OPTARG}"; show_help; exit 1;;
     esac
   done
   
@@ -310,13 +310,13 @@ case $MODE in
     "clone")
         echo "Prüfe Klon-Parameter."
         if [[ "${INPUT_FILE_TYPE}" != "block special"* ]]; then
-            echo "Fehler: Ungültige Eingabe-Typ. Erforderlich: block special. Nur Block-Geräte können geklont werden."
+            echo "Fehler: Ungültiger Eingabe-Typ. Erforderlich: block special. Nur Block-Geräte können geklont werden."
             # Hier kannst du den Code für den Fehlerfall des Eingabe-Typs einfügen
             exit 1
         fi
         
         if [[ "${OUTPUT_FILE_TYPE}" != "block special"* ]]; then
-            echo "Fehler: Ungültige Ausgabe-Typ. Erforderlich: block special. Beim Klonen muss das Ziel ebenfalls ein Block-Gerät sein"
+            echo "Fehler: Ungültiger Ausgabe-Typ. Erforderlich: block special. Beim Klonen muss das Ziel ebenfalls ein Block-Gerät sein"
             # Hier kannst du den Code für den Fehlerfall des Ausgabe-Typs einfügen
             exit 1
         fi
