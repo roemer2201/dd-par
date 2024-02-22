@@ -14,7 +14,7 @@ Attempting scripted parallel dd execution.
 | | backup gzip (check) | restore gzip (check) |
 |-----------|----------|----------|
 | block dev | :heavy_check_mark: (:heavy_check_mark:) | :stop_sign: (:stop_sign:) |
-| file | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+| file | :heavy_check_mark: (:heavy_check_mark:) | :heavy_check_mark: (:heavy_check_mark:) |
 
 <br>
 
@@ -72,8 +72,13 @@ Attempting scripted parallel dd execution.
 
 ## To Do
 - check read/write permissions for $SOURCE, $BACKUP_BASE and $DESTINATION
-- ddpar-check.sh: Add if-statement for checking if a backup as been created with a sha256sum
-- ddpar.sh: Add option to give a backup a custom BASE_NAME
+- ddpar.sh:
+  - Add option to give a backup a custom BASE_NAME
+- ddpar-check.sh:
+  - Add if-statement for checking if a backup as been created with a sha256sum
+- ddpar-restore.sh:
+  - check on file restore, if output is a file. If directory given, append basename from metadata
+  - make fallocate optional
 - use this BASE_NAME as path for checksum files for clones (where user request checksuming)
 - echo a message if no reasonable alternative number of threads/jobs could be calculated
 - when compressing an image and option -c (checksum) is given, should the script calculate the checksum of both, the raw file and the compressed file? (Currently only basefile's checksum is calculated.)
