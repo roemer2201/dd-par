@@ -11,10 +11,10 @@ Attempting scripted parallel dd execution.
 | file | :heavy_check_mark: (:stop_sign:) || :heavy_check_mark: (:heavy_check_mark:) | :heavy_check_mark: (:heavy_check_mark:) |
 
 #### compressed
-| | clone (check) || backup gzip (check) | restore gzip (check) |
-|----------|----------|-|----------|----------|
-| block dev | :stop_sign: (:stop_sign:) || :heavy_check_mark: (:heavy_check_mark:) | :stop_sign: (:stop_sign:) |
-| file | :stop_sign: (:stop_sign:) || :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+| | backup gzip (check) | restore gzip (check) |
+|-----------|----------|----------|
+| block dev | :heavy_check_mark: (:heavy_check_mark:) | :stop_sign: (:stop_sign:) |
+| file | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 
 <br>
 
