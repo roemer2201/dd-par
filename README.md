@@ -13,7 +13,7 @@ Attempting scripted parallel dd execution.
 #### compressed
 | | backup gzip (check) | restore gzip (check) |
 |-----------|----------|----------|
-| block dev | :heavy_check_mark: (:heavy_check_mark:) | :stop_sign: (:stop_sign:) |
+| block dev | :heavy_check_mark: (:heavy_check_mark:) | :heavy_check_mark: (:heavy_check_mark:) |
 | file | :heavy_check_mark: (:heavy_check_mark:) | :heavy_check_mark: (:heavy_check_mark:) |
 
 <br>
@@ -78,6 +78,7 @@ Attempting scripted parallel dd execution.
   - Add if-statement for checking if a backup as been created with a sha256sum
 - ddpar-restore.sh:
   - check on file restore, if output is a file. If directory given, append basename from metadata
+  - fallocate is run multiple times? (maybe only on restoring compressed block dev images?)
   - make fallocate optional
 - use this BASE_NAME as path for checksum files for clones (where user request checksuming)
 - echo a message if no reasonable alternative number of threads/jobs could be calculated
