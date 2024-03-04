@@ -20,6 +20,7 @@ Attempting scripted parallel dd execution.
 
 ### remote - ssh
 #### general remote funcionality (ssh)
+| |state|
 |-|-|
 | establish_ssh_connection | :heavy_check_mark: |
 | execute_remote_command | :heavy_check_mark: |
