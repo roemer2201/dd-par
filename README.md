@@ -20,8 +20,6 @@ Attempting scripted parallel dd execution.
 
 ### remote - ssh
 #### general remote funcionality (ssh)
-
-| | |
 |-|-|
 | establish_ssh_connection | :heavy_check_mark: |
 | execute_remote_command | :heavy_check_mark: |
@@ -98,3 +96,6 @@ Attempting scripted parallel dd execution.
 - echo a message if no reasonable alternative number of threads/jobs could be calculated
 - when compressing an image and option -c (checksum) is given, should the script calculate the checksum of both, the raw file and the compressed file? (Currently only basefile's checksum is calculated.)
 - Code to make missing features work
+- Remoting:
+  - Use differnt functions for remote actions like "output analysis" or implement in the existing functions?
+  - Make remote input and local output work (not yet thought through)
