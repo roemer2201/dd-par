@@ -125,7 +125,7 @@ function connect_ssh {
     fi
 
     # Prüfen, ob der Host per SSH erreichbar ist
-    output=$(ssh -o BatchMode=yes -o ConnectTimeout=5 ${REMOTE_HOST} true 2>&1)
+    output=$(ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=5 ${REMOTE_HOST} true 2>&1)
     
     # Überprüfung des Exit Codes und der Ausgabe
     if [[ $? -eq 0 ]]; then
@@ -288,7 +288,8 @@ function clone_file {
     INPUT_FILE_NAME=$(basename "${INPUT}")
 
     echo "Starting file cloning processes ..."
-    if [[ "${OUTPUT_FILE_TYPE}" == "directory" ]]; then
+    if [[ "${OUTPUT_FILE_TYPE}" == *"directory"* ]]; then
+        echo "OUTPUT_PATH=${OUTPUT}/${INPUT_FILE_NAME}"
         OUTPUT_PATH="${OUTPUT}/${INPUT_FILE_NAME}"
     fi
     for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
@@ -297,6 +298,7 @@ function clone_file {
     START=$((PART_NUM * SPLIT_SIZE))
     INPUT_CMD="dd if=${INPUT} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
     FULL_CMD="${INPUT_CMD}"
+
     # ToDo: create Metadata directory and write Checksum-Files
     #if [ $CHECKSUM -eq 1 ]; then
     #  CHECKSUM_CMD="tee >(sha256sum > ${OUTPUT_FILE}${PART_NUM}.sha256)"
@@ -317,6 +319,11 @@ function clone_file {
     #    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
     #fi
     OUTPUT_CMD="dd of=${OUTPUT_PATH} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
+
+    if [ $REMOTE -eq 1 ]; then
+        echo "Starte entfernte Prozesse"    
+    fi
+
     FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
     echo "$FULL_CMD"
     eval $FULL_CMD
@@ -382,16 +389,37 @@ option_analysis "$@"
 input_analysis
 size_calculation
 if [ $REMOTE -eq 1 ]; then
-  is_ssh_socket_alive
-  if [ $? -ne 0 ]; then
-    echo "Not yet implemented, please support at https://github.com/roemer2201/ddpar"
-    connect_ssh
-    # check_commands_availability, auf local und remote ausführen
-    # Variablen übergeben, zB. $COMPRESSION usw.
-  fi    
+    is_ssh_socket_alive
+    if [ $? -ne 0 ]; then
+        echo "Not yet implemented, please support at https://github.com/roemer2201/ddpar"
+        echo "This script will continue to run, but will end up in an undefined state."
+        connect_ssh
+        # check_commands_availability, auf remote ausführen
+        # Variablen übergeben, zB. $COMPRESSION usw.
+        
+        # Determine the type of the output file
+        ## The following lines are copied from output_analysis function and need to be put into a function
+        echo "Analysiere OUTPUT"
+        OUTPUT_FILE_TYPE=$(execute_remote_command "file -b ${OUTPUT}")
+
+        # Use the appropriate command to calculate the size of the output file
+        echo "\$OUTPUT_FILE_TYPE: ${OUTPUT_FILE_TYPE}"
+        if [[ "${OUTPUT_FILE_TYPE}" == "block special"* ]]; then
+            OUTPUT_SIZE=$(execute_remote_command "blockdev --getsize64 ${OUTPUT}")
+            echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
+        else
+            OUTPUT_SIZE=$(execute_remote_command "stat -c %s ${OUTPUT}")
+            echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
+        fi
+        echo "Remote Output Analyse abgeschlossen"
+        ## End of copied lines
+    fi
+else
+    # local Output analysis
+    check_commands_availability
+    output_analysis # ggf. auf remote ausführen
 fi
-check_commands_availability
-output_analysis # ggf. auf remote ausführen
+
 
 
 echo "Initialisierung erfolgreich"

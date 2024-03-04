@@ -19,6 +19,21 @@ Attempting scripted parallel dd execution.
 <br>
 
 ### remote - ssh
+#### general remote funcionality (ssh)
+
+| | |
+|-|-|
+| establish_ssh_connection | :heavy_check_mark: |
+| execute_remote_command | :heavy_check_mark: |
+| close_ssh_connection | :heavy_check_mark: |
+| remote_command_availability | :stop_sign: |
+| remote_output_analysis | :heavy_check_mark: |
+| remote_cloning_commands | :stop_sign: |
+| remote_backup_commands | :stop_sign: |
+
+<br>
+
+### remote - netcat
 #### uncompressed 
 | | clone | | backup (check) | restore (check) |
 |-|----------|-|----------|----------|
@@ -45,7 +60,6 @@ Attempting scripted parallel dd execution.
 
 <br>
 
-### remote - netcat
 #### uncompressed 
 | | clone | | backup (check) | restore (check) |
 |-|----------|-|----------|----------|
