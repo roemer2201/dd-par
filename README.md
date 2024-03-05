@@ -87,6 +87,7 @@ Attempting scripted parallel dd execution.
 - check read/write permissions for $SOURCE, $BACKUP_BASE and $DESTINATION
 - ddpar.sh:
   - Add option to give a backup a custom BASE_NAME
+  - Add size check for local clone_file
 - ddpar-check.sh:
   - Add if-statement for checking if a backup as been created with a sha256sum
 - ddpar-restore.sh:
