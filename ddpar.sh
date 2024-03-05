@@ -27,7 +27,7 @@ function show_help {
   echo "-b NUM                  Die Blockgröße in Bytes (Default: 1048576 Bytes (1 MiB))"
   echo "-c                      Komprimierung anfordern, Kompressionslevel zur Zeit nicht einstellbar (Default: -6)"
   echo "-s                      Checksumme der einzelnen Teile erstellen"
-  echo "-f                      Force - ignore mangelnden Speicherplatz auf dem Zielgerät (bei \"-m backup\")"
+  echo "-f                      Force - ignore Probleme und erzwinge den Vorgang"
   echo "-r [lnc]                Remote-Verbindung, nur SSH möglich. Remote-Optionen: siehe unten"
   echo "-R user@host            Angabe des Remote-Host"
   echo "-h                      Diese Hilfe anzeigen"
@@ -64,8 +64,8 @@ function option_analysis {
         CHECKSUM=1
         ;;
       f)
-	FORCEBACKUP=1
-	;;
+        FORCE=1
+        ;;
       r)
         REMOTE=1
         if [[ ${OPTARG} =~ ^[lnc]+$ ]]; then
@@ -215,7 +215,7 @@ function input_analysis {
   fi
 }
 
-function output_analysis {
+function local_output_analysis {
   # Determine the type of the output file
   echo "Analysiere OUTPUT"
   OUTPUT_FILE_TYPE=$(file -b ${OUTPUT})
@@ -229,6 +229,23 @@ function output_analysis {
     OUTPUT_SIZE=$(stat -c %s ${OUTPUT})
     echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
   fi
+}
+
+function remote_output_analysis {
+    ## The following lines are copied from local_output_analysis function and need to be put into a function
+    echo "Analysiere OUTPUT"
+    OUTPUT_FILE_TYPE=$(execute_remote_command "file -b ${OUTPUT}")
+    
+    # Use the appropriate command to calculate the size of the output file
+    echo "\$OUTPUT_FILE_TYPE: ${OUTPUT_FILE_TYPE}"
+    if [[ "${OUTPUT_FILE_TYPE}" == "block special"* ]]; then
+        OUTPUT_SIZE=$(execute_remote_command "blockdev --getsize64 ${OUTPUT}")
+        echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
+    else
+        OUTPUT_SIZE=$(execute_remote_command "stat -c %s ${OUTPUT}")
+        echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
+    fi
+    echo "Remote Output Analyse abgeschlossen"        ## End of copied lines
 }
 
 function size_calculation {
@@ -287,11 +304,46 @@ function clone_file {
     # generate further spinoff variables
     INPUT_FILE_NAME=$(basename "${INPUT}")
 
-    echo "Starting file cloning processes ..."
-    if [[ "${OUTPUT_FILE_TYPE}" == *"directory"* ]]; then
+    # check output file type and existence
+    if [[ "${OUTPUT_FILE_TYPE}" == *"directory" ]]; then
         echo "OUTPUT_PATH=${OUTPUT}/${INPUT_FILE_NAME}"
         OUTPUT_PATH="${OUTPUT}/${INPUT_FILE_NAME}"
+    elif [[ "${OUTPUT_FILE_TYPE}" == *"No such file or directory"* ]]; then
+        if [ ! -z "$FORCE" ]; then
+            if mkdir -p "${OUTPUT}"; then
+                OUTPUT_PATH="${OUTPUT}"
+                echo "Directory ${OUTPUT} created successfully."
+            else
+                echo "Error creating directory ${OUTPUT}."
+                return 1
+            fi
+        else
+            echo "${OUTPUT} does not exist, should this directory be created? (y/N)"
+            read answer
+            if [ "$answer" == "y" ]; then
+                if mkdir -p "${OUTPUT}"; then
+                    OUTPUT_PATH="${OUTPUT}"
+                    echo "Directory ${OUTPUT} created successfully."
+                else
+                    echo "Error creating directory ${OUTPUT}."
+                    return 1
+                fi
+            else
+                echo "Request to create directory ${OUTPUT} denied."
+                return 1
+            fi
+        fi
+    else
+        if [ ! -z "$FORCE" ]; then
+            OUTPUT_PATH="${OUTPUT}"
+            echo "${OUTPUT} already exists and will be overwritten due to use of '-f'."
+        else
+            echo "${OUTPUT} already exists. Will not overwrite it. Use '-f' to force."
+            return 1
+        fi
     fi
+
+    echo "Starting file cloning processes ..."
     for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
 
     # Build individual subcommands and concatinate, if enabled
@@ -318,10 +370,12 @@ function clone_file {
     #    OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
     #    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
     #fi
-    OUTPUT_CMD="dd of=${OUTPUT_PATH} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
-
+    
     if [ $REMOTE -eq 1 ]; then
-        echo "Starte entfernte Prozesse"    
+        echo "Launch remote processes <-- not implemented yes"
+        return 1 # <-- remove when implementation finished
+    else
+        OUTPUT_CMD="dd of=${OUTPUT_PATH} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
     fi
 
     FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
@@ -398,26 +452,12 @@ if [ $REMOTE -eq 1 ]; then
         # Variablen übergeben, zB. $COMPRESSION usw.
         
         # Determine the type of the output file
-        ## The following lines are copied from output_analysis function and need to be put into a function
-        echo "Analysiere OUTPUT"
-        OUTPUT_FILE_TYPE=$(execute_remote_command "file -b ${OUTPUT}")
-
-        # Use the appropriate command to calculate the size of the output file
-        echo "\$OUTPUT_FILE_TYPE: ${OUTPUT_FILE_TYPE}"
-        if [[ "${OUTPUT_FILE_TYPE}" == "block special"* ]]; then
-            OUTPUT_SIZE=$(execute_remote_command "blockdev --getsize64 ${OUTPUT}")
-            echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
-        else
-            OUTPUT_SIZE=$(execute_remote_command "stat -c %s ${OUTPUT}")
-            echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
-        fi
-        echo "Remote Output Analyse abgeschlossen"
-        ## End of copied lines
+        remote_output_analysis
     fi
 else
     # local Output analysis
     check_commands_availability
-    output_analysis # ggf. auf remote ausführen
+    local_output_analysis
 fi
 
 
@@ -453,11 +493,11 @@ case $MODE in
         fi
         # Freier Speicher im Zielpfad analysieren
         FREE_SPACE=$(df -P -B 1 "${OUTPUT}" | awk 'NR==2 {print $4}')
-        if [ -z "$FORCEBACKUP" ] && (( INPUT_SIZE > FREE_SPACE )); then
+        if [ -z "$FORCE" ] && (( INPUT_SIZE > FREE_SPACE )); then
             echo "Fehler: Eingabegröße (${INPUT_SIZE}) überschreitet den verfügbaren Speicherplatz (${FREE_SPACE})."
             exit 1
         fi
-	if [ ! -z "$FORCEBACKUP" ] && (( INPUT_SIZE > FREE_SPACE )); then
+	if [ ! -z "$FORCE" ] && (( INPUT_SIZE > FREE_SPACE )); then
             echo "Warnung: Eingabegröße (${INPUT_SIZE}) überschreitet den verfügbaren Speicherplatz (${FREE_SPACE}). Mit aktiver Komprimierung koennte es dennoch passen."
 	fi
         
