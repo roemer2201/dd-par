@@ -9,7 +9,8 @@ BLOCKSIZEBYTES="1048576"
 COMPRESSION=${COMPRESSION:-0}
 CHECKSUM=${CHECKSUM:-0}
 REMOTE=0
-SSH_SOCKET_PATH="/tmp/ssh_mux_%n_%p_%r"
+#SSH_SOCKET_PATH="/tmp/ssh_mux_%n_%p_%r"
+SSH_SOCKET_PATH="/tmp/ssh_socket_ddpar"
 INTERNAL_EXITCODE=0
 
 
@@ -170,6 +171,19 @@ function execute_remote_command {
     return $?
 }
 
+function execute_remote_background_command {
+    local command=$1
+
+    if [ -z "${command}" ]; then
+        echo "Fehler: Kein Befehl zum Ausführen angegeben."
+        return 1
+    fi
+
+    ssh -f -S "${SSH_SOCKET_PATH}" "${REMOTE_HOST}" "${command}"
+    
+    return $?
+}
+
 function close_ssh_connection {
     ssh -S "${SSH_SOCKET_PATH}" -O exit "${REMOTE_HOST}"
     if [ $? -ne 0 ]; then
@@ -177,7 +191,28 @@ function close_ssh_connection {
     fi
 }
 
-check_commands_availability() {
+function check_remote_commands_availability {
+    local commands=("dd" "nc" "df" "tee" "blockdev" "stat" "ss")  # Liste der zu überprüfenden Befehle
+    
+    if [ "$COMPRESSION" -eq 1 ]; then
+        commands+=("gzip")
+    fi
+    
+    if [ "$CHECKSUM" -eq 1 ]; then
+        commands+=("sha256sum")
+    fi
+    
+    for cmd in "${commands[@]}"; do
+        if ! execute_remote_command "command -v \"$cmd\"" &> /dev/null; then
+            echo "Befehl $cmd ist nicht verfügbar."
+            return 1  # Exit-Code 1, wenn mindestens ein Befehl nicht verfügbar ist
+        fi
+    done
+    
+    return 0  # Exit-Code 0, wenn alle Befehle verfügbar sind
+}
+
+function check_commands_availability {
     local commands=("dd" "nc" "df" "tee" "blockdev" "stat")  # Liste der zu überprüfenden Befehle
     
     if [ "$COMPRESSION" -eq 1 ]; then
@@ -233,7 +268,7 @@ function local_output_analysis {
 
 function remote_output_analysis {
     ## The following lines are copied from local_output_analysis function and need to be put into a function
-    echo "Analysiere OUTPUT"
+    echo "Analysiere Remote OUTPUT"
     OUTPUT_FILE_TYPE=$(execute_remote_command "file -b ${OUTPUT}")
     
     # Use the appropriate command to calculate the size of the output file
@@ -246,6 +281,23 @@ function remote_output_analysis {
         echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
     fi
     echo "Remote Output Analyse abgeschlossen"        ## End of copied lines
+}
+
+function remote_port_generation {
+    # Generiere eine Zufallszahl zwischen 0 und 45000
+    REMOTE_PORT=$(( RANDOM % 55001 ))
+    # Füge 10000 hinzu, um den Bereich auf 10000 bis 55000 zu erweitern und addiere zusätzlich
+    REMOTE_PORT=$(( REMOTE_PORT + 10000 ))
+}
+
+function check_remote_port_availability {
+    execute_remote_command "ss -tln | grep -q \":${CURRENT_REMOTE_PORT}\""
+    # Port is free, if exit code is not zero
+    if [[ $? != 0 ]]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 function size_calculation {
@@ -345,42 +397,68 @@ function clone_file {
 
     echo "Starting file cloning processes ..."
     for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
-
-    # Build individual subcommands and concatinate, if enabled
-    START=$((PART_NUM * SPLIT_SIZE))
-    INPUT_CMD="dd if=${INPUT} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
-    FULL_CMD="${INPUT_CMD}"
-
-    # ToDo: create Metadata directory and write Checksum-Files
-    #if [ $CHECKSUM -eq 1 ]; then
-    #  CHECKSUM_CMD="tee >(sha256sum > ${OUTPUT_FILE}${PART_NUM}.sha256)"
-    #  FULL_CMD="${FULL_CMD} | $CHECKSUM_CMD"
-    #fi
-    # ToDo: Compression only makes sense when transfering to remote location, implement later (this is just a copy from backup mode)
-    #if [ $COMPRESSION -eq 1 ]; then
-    #    if [ $PART_NUM -eq 0 ]; then
-    #        #echo "Compression is enabled with \$COMPRESSION_LEVEL ${COMPRESSION_LEVEL}"
-    #        # Append compression and its level to metadata file
-    #        echo "COMPRESSION=${COMPRESSION}" >> ${METADATA_FILE}
-    #        echo "COMPRESSION_LEVEL=${COMPRESSION_LEVEL}" >> ${METADATA_FILE}
-    #    fi
-    #    COMPRESSION_CMD="gzip -${COMPRESSION_LEVEL} > ${OUTPUT_FILE}${PART_NUM}.gz"
-    #    FULL_CMD="${FULL_CMD} | $COMPRESSION_CMD &"
-    #else
-    #    OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
-    #    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
-    #fi
     
-    if [ $REMOTE -eq 1 ]; then
-        echo "Launch remote processes <-- not implemented yes"
-        return 1 # <-- remove when implementation finished
-    else
+        # Build individual subcommands and concatinate, if enabled
+        START=$((PART_NUM * SPLIT_SIZE))
+        INPUT_CMD="dd if=${INPUT} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
+        FULL_CMD="${INPUT_CMD}"
+    
         OUTPUT_CMD="dd of=${OUTPUT_PATH} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
-    fi
+    
+        # ToDo: create Metadata directory and write Checksum-Files
+        #if [ $CHECKSUM -eq 1 ]; then
+        #  CHECKSUM_CMD="tee >(sha256sum > ${OUTPUT_FILE}${PART_NUM}.sha256)"
+        #  FULL_CMD="${FULL_CMD} | $CHECKSUM_CMD"
+        #fi
+        # ToDo: Compression only makes sense when transfering to remote location, implement later (this is just a copy from backup mode)
+        #if [ $COMPRESSION -eq 1 ]; then
+        #    if [ $PART_NUM -eq 0 ]; then
+        #        #echo "Compression is enabled with \$COMPRESSION_LEVEL ${COMPRESSION_LEVEL}"
+        #        # Append compression and its level to metadata file
+        #        echo "COMPRESSION=${COMPRESSION}" >> ${METADATA_FILE}
+        #        echo "COMPRESSION_LEVEL=${COMPRESSION_LEVEL}" >> ${METADATA_FILE}
+        #    fi
+        #    COMPRESSION_CMD="gzip -${COMPRESSION_LEVEL} > ${OUTPUT_FILE}${PART_NUM}.gz"
+        #    FULL_CMD="${FULL_CMD} | $COMPRESSION_CMD &"
+        #else
+        #    OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
+        #    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
+        #fi
+        
+        if [ $REMOTE -eq 1 ]; then
+            echo "Launch remote processes <-- not implemented yes"
+            
+            # Generate and check remote ports
+            if [ -z ${REMOTE_PORT} ]; then
+                remote_port_generation
+                CURRENT_REMOTE_PORT=$(( REMOTE_PORT + PART_NUM ))
+            fi
+            # Schleife zum Generieren eines freien Ports
+            while true; do
+                if check_remote_port_availability; then
+                    break
+                else
+                    echo "Port ${CURRENT_REMOTE_PORT} on remote machine already in use, generate new port."
+                    remote_port_generation
+                    CURRENT_REMOTE_PORT=$(( REMOTE_PORT + PART_NUM ))
+                fi
+            done
 
-    FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
-    echo "$FULL_CMD"
-    eval $FULL_CMD
+            # This backgrounding does not work; solution unkown!               ▼            ▼
+            echo "REMOTE COMMAND: nc -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD} &"
+            execute_remote_background_command "nc -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD} &"
+    
+            INPUT_CMD_REMOTE_EXTENSION="nc ${REMOTE_HOST} ${CURRENT_REMOTE_PORT}"
+            FULL_CMD="${FULL_CMD} | ${INPUT_CMD_REMOTE_EXTENSION} &"
+
+            return 1 # <-- remove when implementation finished
+        else
+            FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
+        fi
+
+        echo "$FULL_CMD"
+        eval $FULL_CMD
+    
     done
 }
 

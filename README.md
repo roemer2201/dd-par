@@ -25,10 +25,15 @@ Attempting scripted parallel dd execution.
 | establish_ssh_connection | :heavy_check_mark: |
 | execute_remote_command | :heavy_check_mark: |
 | close_ssh_connection | :heavy_check_mark: |
-| remote_command_availability | :stop_sign: |
+| check_remote_command_availability | :stop_sign: |
+| remote_port_generation | :heavy_check_mark: |
+| check_remote_port_availability | :heavy_check_mark: |
+| execute_remote_background_command | :gear: |
 | remote_output_analysis | :heavy_check_mark: |
 | remote_cloning_commands | :stop_sign: |
 | remote_backup_commands | :stop_sign: |
+
+
 
 <br>
 
