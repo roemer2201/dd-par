@@ -104,10 +104,10 @@ function establish_ssh_connection {
           echo "Der Befehl \"sshpass\" existiert nicht. Bitte installieren Sie das entsprechende Paket ueber ihren Paketmanager"
           exit 1
         fi
-        sshpass -p "$password" ssh -o StrictHostKeyChecking=no -o ControlMaster=yes -o ControlPersist=yes -S "${control_path}" "${target}" true
+        sshpass -p "$password" ssh -o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPersist=yes -S "${control_path}" "${target}" true
     else
         echo "Verbindungsaufbau mit Sockel ${control_path} zu ${target}"
-        ssh -o StrictHostKeyChecking=no -o ControlMaster=yes -o ControlPersist=yes -S "${control_path}" "${target}" true
+        ssh -o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPersist=yes -S "${control_path}" "${target}" true
     fi
 
     return $?
@@ -179,9 +179,11 @@ function execute_remote_background_command {
         return 1
     fi
 
+    # Maybe background this process?
+    echo "ssh -f -S \"${SSH_SOCKET_PATH}\" \"${REMOTE_HOST}\" \"${command}\""
     ssh -f -S "${SSH_SOCKET_PATH}" "${REMOTE_HOST}" "${command}"
     
-    return $?
+    #return $?
 }
 
 function close_ssh_connection {
@@ -444,9 +446,9 @@ function clone_file {
                 fi
             done
 
-            # This backgrounding does not work; solution unkown!               ▼            ▼
-            echo "REMOTE COMMAND: nc -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD} &"
-            execute_remote_background_command "nc -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD} &"
+            # This backgrounding does not work; solution unkown!               ▼            ▼   ▼
+            echo "REMOTE COMMAND: nc -N -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD}"
+            execute_remote_background_command "nc -N -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD}" &
     
             INPUT_CMD_REMOTE_EXTENSION="nc ${REMOTE_HOST} ${CURRENT_REMOTE_PORT}"
             FULL_CMD="${FULL_CMD} | ${INPUT_CMD_REMOTE_EXTENSION} &"
@@ -530,8 +532,8 @@ if [ $REMOTE -eq 1 ]; then
         # Variablen übergeben, zB. $COMPRESSION usw.
         
         # Determine the type of the output file
-        remote_output_analysis
     fi
+    remote_output_analysis
 else
     # local Output analysis
     check_commands_availability
