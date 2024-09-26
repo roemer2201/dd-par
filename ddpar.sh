@@ -12,6 +12,7 @@ REMOTE=0
 #SSH_SOCKET_PATH="/tmp/ssh_mux_%n_%p_%r"
 SSH_SOCKET_PATH="/tmp/ssh_socket_ddpar"
 INTERNAL_EXITCODE=0
+DEBUG=0
 
 
 # Hilfemeldung anzeigen
@@ -32,6 +33,7 @@ function show_help {
   echo "-r [lnc]                Remote-Verbindung, nur SSH möglich. Remote-Optionen: siehe unten"
   echo "-R user@host            Angabe des Remote-Host"
   echo "-h                      Diese Hilfe anzeigen"
+  echo "-d                      Debug Modus"
   echo ""
   echo "Remote-Optionen:"
   echo "n: Standardeinstellung, No encryption, Verbindungsaufbau verschlüsselt, Datenübertragung unverschlüsselt"
@@ -43,7 +45,7 @@ function show_help {
 function option_analysis {
   # Verwendung von getopts zur Verarbeitung der Optionen
   echo "Analysiere gegebene Optionen \"$*\""
-  while getopts ":i:o:m:j:b:r::R:csfh" opt; do
+  while getopts ":i:o:m:j:b:r::R:csfhd" opt; do
     case $opt in
       i) INPUT="${OPTARG}";;
       o) OUTPUT="${OPTARG}";;
@@ -61,6 +63,7 @@ function option_analysis {
           COMPRESSION_LEVEL="6"
         fi
         ;;
+	  d) DEBUG=1;;
       s)
         CHECKSUM=1
         ;;
@@ -94,6 +97,7 @@ function option_analysis {
   }
 
 function establish_ssh_connection {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion establish_ssh_connection aufgerufen"
     local target=$1
     local control_path=$2
     local password=$3
@@ -114,6 +118,7 @@ function establish_ssh_connection {
 }
 
 function connect_ssh {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion connect_ssh aufgerufen"
     if [ -z "${REMOTE_HOST}" ]; then
         echo "Fehler: Kein Remote-Host angegeben."
         exit 1
@@ -153,12 +158,14 @@ function connect_ssh {
 }
 
 function is_ssh_socket_alive {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion is_ssh_socket_alive aufgerufen"
     # Überprüft, ob ein funktionierender Socket bereits existiert
     ssh -o ControlPath="${SSH_SOCKET_PATH}" -O check "${REMOTE_HOST}" 2>/dev/null
     return $?
 }
 
 function execute_remote_command {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion execute_remote_command aufgerufen"
     local command=$1
 
     if [ -z "${command}" ]; then
@@ -172,6 +179,7 @@ function execute_remote_command {
 }
 
 function execute_remote_background_command {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion execute_remote_background_command aufgerufen"
     local command=$1
 
     if [ -z "${command}" ]; then
@@ -187,6 +195,7 @@ function execute_remote_background_command {
 }
 
 function close_ssh_connection {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion close_ssh_connection aufgerufen"
     ssh -S "${SSH_SOCKET_PATH}" -O exit "${REMOTE_HOST}"
     if [ $? -ne 0 ]; then
         echo "Warnung: Fehler beim Schließen der SSH-Verbindung zu ${REMOTE_HOST}."
@@ -194,6 +203,7 @@ function close_ssh_connection {
 }
 
 function check_remote_commands_availability {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion check_remote_commands_availability aufgerufen"
     local commands=("dd" "nc" "df" "tee" "blockdev" "stat" "ss")  # Liste der zu überprüfenden Befehle
     
     if [ "$COMPRESSION" -eq 1 ]; then
@@ -215,6 +225,7 @@ function check_remote_commands_availability {
 }
 
 function check_commands_availability {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion check_commands_availability aufgerufen"
     local commands=("dd" "nc" "df" "tee" "blockdev" "stat")  # Liste der zu überprüfenden Befehle
     
     if [ "$COMPRESSION" -eq 1 ]; then
@@ -236,6 +247,7 @@ function check_commands_availability {
 }
 
 function input_analysis {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion input_analysis aufgerufen"
   # Determine the type of the input file
   echo "Analysiere INPUT"
   INPUT_FILE_TYPE=$(file -b ${INPUT})
@@ -253,6 +265,7 @@ function input_analysis {
 }
 
 function local_output_analysis {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion local_output_analysis aufgerufen"
   # Determine the type of the output file
   echo "Analysiere OUTPUT"
   OUTPUT_FILE_TYPE=$(file -b ${OUTPUT})
@@ -269,6 +282,7 @@ function local_output_analysis {
 }
 
 function remote_output_analysis {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion remote_output_analysis aufgerufen"
     ## The following lines are copied from local_output_analysis function and need to be put into a function
     echo "Analysiere Remote OUTPUT"
     OUTPUT_FILE_TYPE=$(execute_remote_command "file -b ${OUTPUT}")
@@ -286,6 +300,7 @@ function remote_output_analysis {
 }
 
 function remote_port_generation {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion remote_port_generation aufgerufen"
     # Generiere eine Zufallszahl zwischen 0 und 45000
     REMOTE_PORT=$(( RANDOM % 55001 ))
     # Füge 10000 hinzu, um den Bereich auf 10000 bis 55000 zu erweitern und addiere zusätzlich
@@ -293,6 +308,7 @@ function remote_port_generation {
 }
 
 function check_remote_port_availability {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion check_remote_port_availability aufgerufen"
     execute_remote_command "ss -tln | grep -q \":${CURRENT_REMOTE_PORT}\""
     # Port is free, if exit code is not zero
     if [[ $? != 0 ]]; then
@@ -303,6 +319,7 @@ function check_remote_port_availability {
 }
 
 function size_calculation {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion size_calculation aufgerufen"
   # Calculate the size of each input split file
   echo "Calculate the size of each input split file"
   SPLIT_SIZE=$((INPUT_SIZE / NUM_JOBS))
@@ -355,6 +372,7 @@ function size_calculation {
 }
 
 function clone_file {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion clone_file aufgerufen"
     # generate further spinoff variables
     INPUT_FILE_NAME=$(basename "${INPUT}")
 
@@ -465,6 +483,7 @@ function clone_file {
 }
 
 function clone_block {
+	[ "$DEBUG" -eq 1 ] && echo "[DEBUG] Funktion clone_block aufgerufen"
     echo "Prüfe Klon-Parameter."
     # Wird wahrscheinlich nicht mehr gebraucht:
     #if [[ "${INPUT_FILE_TYPE}" != "block special"* ]]; then
