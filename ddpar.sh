@@ -124,6 +124,8 @@ function set_colors {
 			NOCOLOR='\033[0m'
 			# Eventfarben
 			DEBUGCOLOR=${IRED}
+			ERRORCOLOR=${BIRED}
+			SUCCESSCOLOR=${IGREEN}
 			SETXCOLOR=${IBLACK}
 		fi
 	fi
@@ -168,10 +170,10 @@ function connect_ssh {
     
     # Überprüfung des Exit Codes und der Ausgabe
     if [[ $? -eq 0 ]]; then
-        echo "Passwortloser Verbindungsaufbau war erfolgreich."
+        echo -e "${SUCCESSCOLOR}Passwortloser Verbindungsaufbau war erfolgreich.${NOCOLOR}"
         establish_ssh_connection "${REMOTE_HOST}" "${SSH_SOCKET_PATH}"
     elif echo "$output" | grep -q "Permission denied"; then
-        echo "Host ist erreichbar, aber passwortlose Authentifizierung fehlgeschlagen."
+        echo -e "${ERRORCOLOR}Host ist erreichbar, aber passwortlose Authentifizierung fehlgeschlagen.${NOCOLOR}"
         # Passwort vom Nutzer abfragen
         echo -n "Bitte geben Sie das SSH-Passwort für ${REMOTE_HOST} ein: "
         read -s USER_PASSWORD
@@ -179,15 +181,15 @@ function connect_ssh {
 
         establish_ssh_connection "${REMOTE_HOST}" "${SSH_SOCKET_PATH}" "$USER_PASSWORD"
         if [ $? -ne 0 ]; then
-            echo "Verbindung zu ${REMOTE_HOST} konnte nicht hergestellt werden."
+            echo -e "${ERRORCOLOR}Verbindung zu ${REMOTE_HOST} konnte nicht hergestellt werden.${NOCOLOR}"
             exit 1
         fi
     else
-        echo "Unbekannter Fehler oder Host nicht erreichbar. Ausgabe:"
+        echo -e "${ERRORCOLOR}Unbekannter Fehler oder Host nicht erreichbar. Ausgabe:${NOCOLOR}"
         echo "$output"
     fi
 
-    echo "SSH-Verbindung zu ${REMOTE_HOST} wurde erfolgreich aufgebaut."
+    echo -e "${SUCCESSCOLOR}SSH-Verbindung zu ${REMOTE_HOST} wurde erfolgreich aufgebaut.${NOCOLOR}"
 }
 
 function is_ssh_socket_alive {
@@ -588,7 +590,7 @@ fi
 
 
 
-echo "Initialisierung erfolgreich"
+echo -e "${SUCCESSCOLOR}Initialisierung erfolgreich${NOCOLOR}"
 
 # Modus analysieren
 
