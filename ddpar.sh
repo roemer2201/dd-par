@@ -69,6 +69,7 @@ function option_analysis {
 		#PS4="${SETXCOLOR}>> ${LINENO}: ${NOCOLOR}"
 		#PS4="${SETXCOLOR} ${NOCOLOR}"
 		PS4="${SETXCOLOR}$(printf "%*s" "$SHLVL" | tr " " "+") ${NOCOLOR}"
+		echo -e "${WARNCOLOR}[WARN] DEBUG mode enabled, passwords get printed as clear text!${NOCOLOR}"
 		;;
 	  s)
         CHECKSUM=1
@@ -487,8 +488,8 @@ function clone_file {
             # Generate and check remote ports
             if [ -z ${REMOTE_PORT} ]; then
                 remote_port_generation
-                CURRENT_REMOTE_PORT=$(( REMOTE_PORT + PART_NUM ))
             fi
+			CURRENT_REMOTE_PORT=$(( REMOTE_PORT + PART_NUM ))
             # Schleife zum Generieren eines freien Ports
             while true; do
                 if check_remote_port_availability; then
@@ -578,8 +579,9 @@ size_calculation
 if [ $REMOTE -eq 1 ]; then
     is_ssh_socket_alive
     if [ $? -ne 0 ]; then
-        echo -e "${WARNCOLOR}Not yet implemented, please support at https://github.com/roemer2201/ddpar${NOCOLOR}"
-        echo -e "${WARNCOLOR}This script will continue to run, but will end up in an undefined state.${NOCOLOR}"
+        #echo -e "${WARNCOLOR}Not yet implemented, please support at https://github.com/roemer2201/ddpar${NOCOLOR}"
+        #echo -e "${WARNCOLOR}This script will continue to run, but will end up in an undefined state.${NOCOLOR}"
+		# connect_ssh seems finished, warnings above removed
         connect_ssh
         # check_commands_availability, auf remote ausführen
         # Variablen übergeben, zB. $COMPRESSION usw.
