@@ -97,7 +97,7 @@ function option_analysis {
   
   # Überprüfung der erforderlichen Parameter
   if [ -z "${INPUT}" ] || [ -z "${OUTPUT}" ] ; then
-    echo "Fehlende Parameter. Bitte geben Sie alle erforderlichen Parameter --input und --output an."
+    echo -e "${ERRORCOLOR}Fehlende Parameter. Bitte geben Sie alle erforderlichen Parameter --input und --output an.${NOCOLOR}"
     exit 1
   fi
   }
@@ -116,6 +116,7 @@ function set_colors {
 			WHITE='\033[0;37m'
 			IBLACK='\033[0;90m'
 			IGREEN='\033[0;92m'
+			IPURPLE='\033[0;95m'
 			IRED='\033[0;91m'
 			IYELLOW='\033[0;93m'
 			BIGREEN='\033[1;92m'
@@ -125,7 +126,10 @@ function set_colors {
 			# Eventfarben
 			DEBUGCOLOR=${IRED}
 			ERRORCOLOR=${BIRED}
+			WARNCOLOR=${IPURPLE}
+			INFOCOLOR=${IBLACK}
 			SUCCESSCOLOR=${IGREEN}
+			REQUESTCOLOR=${IYELLOW}
 			SETXCOLOR=${IBLACK}
 		fi
 	fi
@@ -140,12 +144,12 @@ function establish_ssh_connection {
     # Wenn ein Passwort bereitgestellt wird, verwenden Sie es, um sich per SSH zu verbinden.
     if [ -n "$password" ]; then
         if ! which sshpass > /dev/null; then
-          echo "Der Befehl \"sshpass\" existiert nicht. Bitte installieren Sie das entsprechende Paket ueber ihren Paketmanager"
+          echo -e "${ERRORCOLOR}Der Befehl \"sshpass\" existiert nicht. Bitte installieren Sie das entsprechende Paket ueber ihren Paketmanager${NOCOLOR}"
           exit 1
         fi
         sshpass -p "$password" ssh -o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPersist=yes -S "${control_path}" "${target}" true
     else
-        echo "Verbindungsaufbau mit Sockel ${control_path} zu ${target}"
+        echo -e "${INFOCOLOR}Verbindungsaufbau mit Sockel ${control_path} zu ${target}${NOCOLOR}"
         ssh -o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPersist=yes -S "${control_path}" "${target}" true
     fi
 
@@ -155,13 +159,13 @@ function establish_ssh_connection {
 function connect_ssh {
 	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
     if [ -z "${REMOTE_HOST}" ]; then
-        echo "Fehler: Kein Remote-Host angegeben."
+        echo -e "${ERRORCOLOR}Fehler: Kein Remote-Host angegeben.${NOCOLOR}"
         exit 1
     fi
 
     # Wenn ein Socket bereits existiert und funktioniert, dann frühzeitig aussteigen
     if is_ssh_socket_alive; then
-        echo "SSH-Verbindung zu ${REMOTE_HOST} besteht bereits."
+        echo -e "${INFOCOLOR}SSH-Verbindung zu ${REMOTE_HOST} besteht bereits.${NOCOLOR}"
         return 0
     fi
 
@@ -175,7 +179,7 @@ function connect_ssh {
     elif echo "$output" | grep -q "Permission denied"; then
         echo -e "${ERRORCOLOR}Host ist erreichbar, aber passwortlose Authentifizierung fehlgeschlagen.${NOCOLOR}"
         # Passwort vom Nutzer abfragen
-        echo -n "Bitte geben Sie das SSH-Passwort für ${REMOTE_HOST} ein: "
+        echo -en "${REQUESTCOLOR}Bitte geben Sie das SSH-Passwort für ${REMOTE_HOST} ein: ${NOCOLOR}"
         read -s USER_PASSWORD
         echo
 
@@ -204,7 +208,7 @@ function execute_remote_command {
     local command=$1
 
     if [ -z "${command}" ]; then
-        echo "Fehler: Kein Befehl zum Ausführen angegeben."
+        echo -e "${ERRORCOLOR}Fehler: Kein Befehl zum Ausführen angegeben.${NOCOLOR}"
         return 1
     fi
 
@@ -218,12 +222,12 @@ function execute_remote_background_command {
     local command=$1
 
     if [ -z "${command}" ]; then
-        echo "Fehler: Kein Befehl zum Ausführen angegeben."
+        echo -e "${ERRORCOLOR}Fehler: Kein Befehl zum Ausführen angegeben.${NOCOLOR}"
         return 1
     fi
 
     # Background the remote process using "nohup ... &"?
-    echo "ssh -S \"${SSH_SOCKET_PATH}\" \"${REMOTE_HOST}\" \"nohup sh -c \${command}\"> /tmp/ddpar.log 2>&1 &"
+    [ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}ssh -S \"${SSH_SOCKET_PATH}\" \"${REMOTE_HOST}\" \"nohup sh -c \${command}\"> /tmp/ddpar.log 2>&1 &${NOCOLOR}"
     ssh -S "${SSH_SOCKET_PATH}" "${REMOTE_HOST}" "nohup sh -c \"${command}\" > /tmp/ddpar.log 2>&1 &"
 }
 
@@ -231,7 +235,7 @@ function close_ssh_connection {
 	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
     ssh -S "${SSH_SOCKET_PATH}" -O exit "${REMOTE_HOST}"
     if [ $? -ne 0 ]; then
-        echo "Warnung: Fehler beim Schließen der SSH-Verbindung zu ${REMOTE_HOST}."
+        echo -e "${WARNCOLOR}Warnung: Fehler beim Schließen der SSH-Verbindung zu ${REMOTE_HOST}.${NOCOLOR}"
     fi
 }
 
@@ -249,7 +253,7 @@ function check_remote_commands_availability {
     
     for cmd in "${commands[@]}"; do
         if ! execute_remote_command "command -v \"$cmd\"" &> /dev/null; then
-            echo "Befehl $cmd ist nicht verfügbar."
+            echo -e "${ERRORCOLOR}Befehl $cmd ist nicht verfügbar.${NOCOLOR}"
             return 1  # Exit-Code 1, wenn mindestens ein Befehl nicht verfügbar ist
         fi
     done
@@ -271,7 +275,7 @@ function check_commands_availability {
     
     for cmd in "${commands[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
-            echo "Befehl $cmd ist nicht verfügbar."
+            echo -e "${ERRORCOLOR}Befehl $cmd ist nicht verfügbar.${NOCOLOR}"
             return 1  # Exit-Code 1, wenn mindestens ein Befehl nicht verfügbar ist
         fi
     done
@@ -282,7 +286,7 @@ function check_commands_availability {
 function input_analysis {
 	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
   # Determine the type of the input file
-  echo "Analysiere INPUT"
+  echo -e "${INFOCOLOR}Analysiere INPUT${NOCOLOR}"
   INPUT_FILE_TYPE=$(file -b ${INPUT})
   echo "\$INPUT_FILE_TYPE = $INPUT_FILE_TYPE"
   
@@ -300,7 +304,7 @@ function input_analysis {
 function local_output_analysis {
 	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
   # Determine the type of the output file
-  echo "Analysiere OUTPUT"
+  echo -e "${INFOCOLOR}Analysiere OUTPUT${NOCOLOR}"
   OUTPUT_FILE_TYPE=$(file -b ${OUTPUT})
   
   # Use the appropriate command to calculate the size of the output file
@@ -317,7 +321,7 @@ function local_output_analysis {
 function remote_output_analysis {
 	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
     ## The following lines are copied from local_output_analysis function and need to be put into a function
-    echo "Analysiere Remote OUTPUT"
+    echo -e "${INFOCOLOR}Analysiere Remote OUTPUT${NOCOLOR}"
     OUTPUT_FILE_TYPE=$(execute_remote_command "file -b ${OUTPUT}")
     
     # Use the appropriate command to calculate the size of the output file
@@ -329,7 +333,7 @@ function remote_output_analysis {
         OUTPUT_SIZE=$(execute_remote_command "stat -c %s ${OUTPUT}")
         echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
     fi
-    echo "Remote Output Analyse abgeschlossen"        ## End of copied lines
+    echo -e "${INFOCOLOR}Remote Output Analyse abgeschlossen${NOCOLOR}"
 }
 
 function remote_port_generation {
@@ -347,6 +351,7 @@ function check_remote_port_availability {
     if [[ $? != 0 ]]; then
         return 0
     else
+		[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}Port ${CURRENT_REMOTE_PORT} bereits in Benutzung.${NOCOLOR}"
         return 1
     fi
 }
@@ -354,53 +359,53 @@ function check_remote_port_availability {
 function size_calculation {
 	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
   # Calculate the size of each input split file
-  echo "Calculate the size of each input split file"
+  echo -e "${INFOCOLOR}Calculate the size of each input split file${NOCOLOR}"
   SPLIT_SIZE=$((INPUT_SIZE / NUM_JOBS))
-  echo "Splitsize: ${SPLIT_SIZE}"
+  echo -e "${INFOCOLOR}Splitsize: ${SPLIT_SIZE}${NOCOLOR}"
   
   # Check if all sizes have whole numbers
-  echo "Check if all sizes have whole numbers"
+  echo -e "${INFOCOLOR}Check if all sizes have whole numbers${NOCOLOR}"
   if [ $((INPUT_SIZE % NUM_JOBS)) -ne 0 ] || [ $((SPLIT_SIZE % BLOCKSIZEBYTES)) -ne 0 ]; then
-    echo "ERROR: The input file size (${INPUT_SIZE}) is not evenly divisible by the number of jobs (${NUM_JOBS}), or the resulting split size is not evenly divisible by defined blocksize in by bytes ($BLOCKSIZEBYTES)."
+    echo -e "${WARNCOLOR}WARN: The input file size (${INPUT_SIZE}) is not evenly divisible by the number of jobs (${NUM_JOBS}), or the resulting split size is not evenly divisible by defined blocksize in by bytes ($BLOCKSIZEBYTES).${NOCOLOR}"
     # Calculate the next higher usable job number
-    echo "Calculate the next higher usable job number"
+    echo -e "${INFOCOLOR}Calculate the next higher usable job number${NOCOLOR}"
       for ((i=${NUM_JOBS}; i<$((${NUM_JOBS}**2)); i++)); do
         if [ $((INPUT_SIZE % i)) -eq 0 ] && [ $(( $((INPUT_SIZE / i)) % BLOCKSIZEBYTES)) -eq 0 ]; then
           #echo "i=${i} - ${INPUT_SIZE}/${NUM_JOBS} = $((INPUT_SIZE % i)) - SPLIT_SIZE: $(( $((INPUT_SIZE / i)) % BLOCKSIZEBYTES))"
-          echo "INFO: The next higher usable Threadnumber is $i (at same Blocksize of ${BLOCKSIZEBYTES}"
+          echo -e "${SUCCESSCOLOR}INFO: The next higher usable Threadnumber is $i (at same Blocksize of ${BLOCKSIZEBYTES}${}"
           break
         fi
       done
     # Calculate the next lower usable job number
-    echo "Calculate the next lower usable job number"
+    echo -e "${INFOCOLOR}Calculate the next lower usable job number${NOCOLOR}"
       for ((i=$NUM_JOBS; i>0; i--)); do
         if [ $((INPUT_SIZE % i)) -eq 0 ] && [ $(( $((INPUT_SIZE / i)) % BLOCKSIZEBYTES)) -eq 0 ]; then
           #echo "i=${i} - ${INPUT_SIZE}/${NUM_JOBS} = $((INPUT_SIZE % i)) - SPLIT_SIZE: $(( $((INPUT_SIZE / i)) % BLOCKSIZEBYTES))"
-          echo "INFO: The next lower usable Threadnumber is $i (at same Blocksize of ${BLOCKSIZEBYTES}"
+          echo -e "${SUCCESSCOLOR}INFO: The next lower usable Threadnumber is $i (at same Blocksize of ${BLOCKSIZEBYTES}${NOCOLOR}"
           break
         fi
       done
     # Calculate the next higher usable blocksize number
-    echo "Calculate the next higher usable blocksize number"
+    echo -e "${INFOCOLOR}Calculate the next higher usable blocksize number${NOCOLOR}"
     for ((i=$BLOCKSIZEBYTES; i<$(($BLOCKSIZEBYTES*4)); i++)); do
       if [ $((INPUT_SIZE % i)) -eq 0 ] && [ $(( $((INPUT_SIZE / i)) % NUM_JOBS)) -eq 0 ]; then
         #echo "i=${i} - ${INPUT_SIZE}/${NUM_JOBS} = $((INPUT_SIZE % i)) - SPLIT_SIZE: $(( $((INPUT_SIZE / i)) % BLOCKSIZEBYTES))"
-        echo "INFO: The next higher usable blocksize number is $i (at same number of jobs (${NUM_JOBS}))"
+        echo -e "${SUCCESSCOLOR}INFO: The next higher usable blocksize number is $i (at same number of jobs (${NUM_JOBS}))${NOCOLOR}"
         break
       fi
     done
     # Calculate the next lower usable blocksize number
-    echo "Calculate the next lower usable blocksize number"
+    echo -e "${INFOCOLOR}Calculate the next lower usable blocksize number${NOCOLOR}"
     for ((i=${BLOCKSIZEBYTES}; i>0; i--)); do
       if [ $((INPUT_SIZE % i)) -eq 0 ] && [ $(( $((INPUT_SIZE / i)) % NUM_JOBS)) -eq 0 ]; then
         #echo "i=${i} - ${INPUT_SIZE}/${NUM_JOBS} = $((INPUT_SIZE % i)) - SPLIT_SIZE: $(( $((INPUT_SIZE / i)) % BLOCKSIZEBYTES))"
-        echo "INFO: The next lower usable blocksize number is ${i} (at same number of jobs (${NUM_JOBS}))"
+        echo -e "${SUCCESSCOLOR}INFO: The next lower usable blocksize number is ${i} (at same number of jobs (${NUM_JOBS}))${NOCOLOR}"
         break
       fi
     done
     exit 1
   else
-    echo "All sizes seem even."
+    echo -e "${SUCCESSCOLOR}All sizes seem even.${NOCOLOR}"
   fi
 }
 
@@ -423,14 +428,14 @@ function clone_file {
                 return 1
             fi
         else
-            echo "${OUTPUT} does not exist, should this directory be created? (y/N)"
+            echo -e "${REQUESTCOLOR}${OUTPUT} does not exist, should this directory be created? (y/N)${NOCOLOR}"
             read answer
             if [ "$answer" == "y" ]; then
                 if mkdir -p "${OUTPUT}"; then
                     OUTPUT_PATH="${OUTPUT}"
-                    echo "Directory ${OUTPUT} created successfully."
+                    echo -e "${SUCCESSCOLOR}Directory ${OUTPUT} created successfully.${NOCOLOR}"
                 else
-                    echo "Error creating directory ${OUTPUT}."
+                    echo -e "${ERRORCOLOR}Error creating directory ${OUTPUT}.${NOCOLOR}"
                     return 1
                 fi
             else
@@ -441,14 +446,14 @@ function clone_file {
     else
         if [ ! -z "$FORCE" ]; then
             OUTPUT_PATH="${OUTPUT}"
-            echo "${OUTPUT} already exists and will be overwritten due to use of '-f'."
+            echo -e "${OUTPUT} already exists and will be overwritten due to use of '-f'."
         else
-            echo "${OUTPUT} already exists. Will not overwrite it. Use '-f' to force."
+            echo -e "${ERRORCOLOR}${OUTPUT} already exists. Will not overwrite it. Use '-f' to force.${NOCOLOR}"
             return 1
         fi
     fi
 
-    echo "Starting file cloning processes ..."
+    echo -e "${SUCCESSCOLOR}Starting file cloning processes ...${NOCOLOR}"
     for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
     
         # Build individual subcommands and concatinate, if enabled
@@ -489,7 +494,7 @@ function clone_file {
                 if check_remote_port_availability; then
                     break
                 else
-                    echo "Port ${CURRENT_REMOTE_PORT} on remote machine already in use, generate new port."
+                    echo -e "${INFOCOLOR}Port ${CURRENT_REMOTE_PORT} on remote machine already in use, generate new port.${NOCOLOR}"
                     remote_port_generation
                     CURRENT_REMOTE_PORT=$(( REMOTE_PORT + PART_NUM ))
                 fi
@@ -520,17 +525,17 @@ function clone_block {
     #    exit 1
     #fi        
     if [[ "${OUTPUT_FILE_TYPE}" != "block special"* ]]; then
-        echo "Fehler: Ungültiger Ausgabe-Typ. Erforderlich: block special. Beim Klonen eines Block-Gerätes muss das Ziel ebenfalls ein Block-Gerät sein."
+        echo -e "${ERRORCOLOR}Fehler: Ungültiger Ausgabe-Typ. Erforderlich: block special. Beim Klonen eines Block-Gerätes muss das Ziel ebenfalls ein Block-Gerät sein.${NOCOLOR}"
         # Hier kannst du den Code für den Fehlerfall des Ausgabe-Typs einfügen
         exit 1
     fi
     if (( INPUT_SIZE > OUTPUT_SIZE )); then
-        echo "Fehler: Eingabegröße (${INPUT_SIZE}) ist größer als Ausgabegröße (${OUTPUT_SIZE}). Bitte stelle ein anderes Zielgerät bereit."
+        echo -e "${ERRORCOLOR}Fehler: Eingabegröße (${INPUT_SIZE}) ist größer als Ausgabegröße (${OUTPUT_SIZE}). Bitte stelle ein anderes Zielgerät bereit.${NOCOLOR}"
         # Hier kannst du den Code für den Fehlerfall des Größenverhältnisses einfügen
         exit 1
     fi
-    echo "Klonvorgang kann durchgeführt werden."
-    echo "Starte die Prozesse ..."
+    echo -e "${SUCCESSCOLOR}Klonvorgang kann durchgeführt werden.${NOCOLOR}"
+    echo -e "${SUCCESSCOLOR}Starte die Prozesse ...${NOCOLOR}"
     for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
     # Build individual subcommands and concatinate, if enabled
     START=$((PART_NUM * SPLIT_SIZE))
@@ -573,8 +578,8 @@ size_calculation
 if [ $REMOTE -eq 1 ]; then
     is_ssh_socket_alive
     if [ $? -ne 0 ]; then
-        echo "Not yet implemented, please support at https://github.com/roemer2201/ddpar"
-        echo "This script will continue to run, but will end up in an undefined state."
+        echo -e "${WARNCOLOR}Not yet implemented, please support at https://github.com/roemer2201/ddpar${NOCOLOR}"
+        echo -e "${WARNCOLOR}This script will continue to run, but will end up in an undefined state.${NOCOLOR}"
         connect_ssh
         # check_commands_availability, auf remote ausführen
         # Variablen übergeben, zB. $COMPRESSION usw.
@@ -602,7 +607,7 @@ case $MODE in
                 clone_block
                 ;;
             "directory")
-                echo "Input-type is directory, which cannot be cloned using this script. Exiting ..."
+                echo -e "${ERRORCOLOR}Input-type is directory, which cannot be cloned using this script. Exiting ...${NOCOLOR}"
                 INTERNAL_EXITCODE=1
                 ;;
             *)
@@ -615,21 +620,21 @@ case $MODE in
         ;;
     "backup")
         if [[ "${OUTPUT_FILE_TYPE}" != *"directory"* ]]; then
-            echo "Fehler: Ungültiger Ausgabe-Typ ${OUTPUT_FILE_TYPE}. Erforderlich: directory."
+            echo -e "${ERRORCOLOR}Fehler: Ungültiger Ausgabe-Typ ${OUTPUT_FILE_TYPE}. Erforderlich: directory.${NOCOLOR}"
             # Hier kannst du den Code für den Fehlerfall des Ausgabe-Typs einfügen
             exit 1
         fi
         # Freier Speicher im Zielpfad analysieren
         FREE_SPACE=$(df -P -B 1 "${OUTPUT}" | awk 'NR==2 {print $4}')
         if [ -z "$FORCE" ] && (( INPUT_SIZE > FREE_SPACE )); then
-            echo "Fehler: Eingabegröße (${INPUT_SIZE}) überschreitet den verfügbaren Speicherplatz (${FREE_SPACE})."
+            echo -e "${ERRORCOLOR}Fehler: Eingabegröße (${INPUT_SIZE}) überschreitet den verfügbaren Speicherplatz (${FREE_SPACE}).${NOCOLOR}"
             exit 1
         fi
 	if [ ! -z "$FORCE" ] && (( INPUT_SIZE > FREE_SPACE )); then
-            echo "Warnung: Eingabegröße (${INPUT_SIZE}) überschreitet den verfügbaren Speicherplatz (${FREE_SPACE}). Mit aktiver Komprimierung koennte es dennoch passen."
+            echo -e "${WARNCOLOR}Warnung: Eingabegröße (${INPUT_SIZE}) überschreitet den verfügbaren Speicherplatz (${FREE_SPACE}). Mit aktiver Komprimierung koennte es dennoch passen.${NOCOLOR}"
 	fi
         
-        echo "Führe die Backup-Aktion durch."
+        echo -e "${SUCCESSCOLOR}Führe die Backup-Aktion durch.${NOCOLOR}"
 
         # generate further spinoff variables
         INPUT_FILE_NAME=$(basename "${INPUT}")
@@ -654,7 +659,7 @@ case $MODE in
         # Write to metadata file
         echo "SPLIT_SIZE=${SPLIT_SIZE}" >> ${METADATA_FILE}
         
-        echo "Starte die Prozesse ..."
+        echo -e "${INFOCOLOR}Starte die Prozesse ...${NOCOLOR}"
         for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
 
         # Build individual subcommands and concatinate, if enabled
