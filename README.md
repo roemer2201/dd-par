@@ -30,7 +30,7 @@ Attempting scripted parallel dd execution.
 | check_remote_port_availability | :heavy_check_mark: |
 | execute_remote_background_command | :heavy_check_mark: |
 | remote_output_analysis | :heavy_check_mark: |
-| remote_cloning_commands | :stop_sign: |
+| remote_cloning_commands | :gear: |
 | remote_backup_commands | :stop_sign: |
 
 
