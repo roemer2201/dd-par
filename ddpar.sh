@@ -707,7 +707,10 @@ case $MODE in
 esac
 
 if [ $REMOTE -eq 1 ]; then
-  close_ssh_connection
+	close_ssh_connection
+	if [ $? -eq 0 ]; then
+		echo -e "${SUCCESSCOLOR}SSH-Verbindung zu ${REMOTE_HOST} erfolgreich gertrennt.${NOCOLOR}"
+	fi
 fi
 
 exit ${INTERNAL_EXITCODE}
