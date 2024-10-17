@@ -510,8 +510,8 @@ function clone_file {
             FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
         fi
 
-        echo "$FULL_CMD"
-        eval $FULL_CMD
+        echo "${INFOCOLOR}${FULL_CMD}${NOCOLOR}"
+        eval ${FULL_CMD}
     
     done
 }
@@ -563,8 +563,8 @@ function clone_block {
     #fi
     OUTPUT_CMD="dd of=${OUTPUT} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
     FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
-    echo "$FULL_CMD"
-    eval $FULL_CMD
+    echo "${INFOCOLOR}${FULL_CMD}${NOCOLOR}"
+    eval ${FULL_CMD}
     done
 }
 
@@ -685,8 +685,8 @@ case $MODE in
             OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
             FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
         fi
-        echo "$FULL_CMD"
-        eval $FULL_CMD
+        echo "${INFOCOLOR}${FULL_CMD}${NOCOLOR}"
+        eval ${FULL_CMD}
         done
         
         
