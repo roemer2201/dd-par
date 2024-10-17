@@ -28,9 +28,9 @@ Attempting scripted parallel dd execution.
 | check_remote_command_availability | :stop_sign: |
 | remote_port_generation | :heavy_check_mark: |
 | check_remote_port_availability | :heavy_check_mark: |
-| execute_remote_background_command | :gear: |
+| execute_remote_background_command | :heavy_check_mark: |
 | remote_output_analysis | :heavy_check_mark: |
-| remote_cloning_commands | :stop_sign: |
+| remote_cloning_commands | :gear: |
 | remote_backup_commands | :stop_sign: |
 
 
@@ -42,7 +42,7 @@ Attempting scripted parallel dd execution.
 | | clone | | backup (check) | restore (check) |
 |-|----------|-|----------|----------|
 | block dev | :stop_sign: (:stop_sign:) | | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
-| file | :stop_sign: (:stop_sign:) | | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+| file | :heavy_check_mark: (:stop_sign:) | | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 
 #### local [de]compression
 | | backup gzip (check) | restore gzip (check) |
