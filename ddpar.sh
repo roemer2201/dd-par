@@ -137,7 +137,7 @@ function set_colors {
 }
 
 function establish_ssh_connection {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     local target=$1
     local control_path=$2
     local password=$3
@@ -158,7 +158,7 @@ function establish_ssh_connection {
 }
 
 function connect_ssh {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     if [ -z "${REMOTE_HOST}" ]; then
         echo -e "${ERRORCOLOR}Fehler: Kein Remote-Host angegeben.${NOCOLOR}"
         exit 1
@@ -198,14 +198,14 @@ function connect_ssh {
 }
 
 function is_ssh_socket_alive {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     # Überprüft, ob ein funktionierender Socket bereits existiert
     ssh -o ControlPath="${SSH_SOCKET_PATH}" -O check "${REMOTE_HOST}" 2>/dev/null
     return $?
 }
 
 function execute_remote_command {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     local command=$1
 
     if [ -z "${command}" ]; then
@@ -219,7 +219,7 @@ function execute_remote_command {
 }
 
 function execute_remote_background_command {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     local command=$1
 
     if [ -z "${command}" ]; then
@@ -233,7 +233,7 @@ function execute_remote_background_command {
 }
 
 function close_ssh_connection {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     ssh -S "${SSH_SOCKET_PATH}" -O exit "${REMOTE_HOST}"
     if [ $? -ne 0 ]; then
         echo -e "${WARNCOLOR}Warnung: Fehler beim Schließen der SSH-Verbindung zu ${REMOTE_HOST}.${NOCOLOR}"
@@ -241,7 +241,7 @@ function close_ssh_connection {
 }
 
 function check_remote_commands_availability {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion check_remote_commands_availability aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion check_remote_commands_availability aufgerufen${NOCOLOR}" >&2
     local commands=("dd" "nc" "df" "tee" "blockdev" "stat" "ss")  # Liste der zu überprüfenden Befehle
     
     if [ "$COMPRESSION" -eq 1 ]; then
@@ -263,7 +263,7 @@ function check_remote_commands_availability {
 }
 
 function check_commands_availability {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     local commands=("dd" "nc" "df" "tee" "blockdev" "stat")  # Liste der zu überprüfenden Befehle
     
     if [ "$COMPRESSION" -eq 1 ]; then
@@ -285,7 +285,7 @@ function check_commands_availability {
 }
 
 function input_analysis {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
   # Determine the type of the input file
   echo -e "${INFOCOLOR}Analysiere INPUT${NOCOLOR}"
   INPUT_FILE_TYPE=$(file -b ${INPUT})
@@ -303,7 +303,7 @@ function input_analysis {
 }
 
 function local_output_analysis {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
   # Determine the type of the output file
   echo -e "${INFOCOLOR}Analysiere OUTPUT${NOCOLOR}"
   OUTPUT_FILE_TYPE=$(file -b ${OUTPUT})
@@ -320,7 +320,7 @@ function local_output_analysis {
 }
 
 function remote_output_analysis {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     ## The following lines are copied from local_output_analysis function and need to be put into a function
     echo -e "${INFOCOLOR}Analysiere Remote OUTPUT${NOCOLOR}"
     OUTPUT_FILE_TYPE=$(execute_remote_command "file -b ${OUTPUT}")
@@ -338,7 +338,7 @@ function remote_output_analysis {
 }
 
 function remote_port_generation {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     # Generiere eine Zufallszahl zwischen 0 und 45000
     REMOTE_PORT=$(( RANDOM % 55001 ))
     # Füge 10000 hinzu, um den Bereich auf 10000 bis 55000 zu erweitern und addiere zusätzlich
@@ -346,7 +346,7 @@ function remote_port_generation {
 }
 
 function check_remote_port_availability {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     execute_remote_command "ss -tln | grep -q \":${CURRENT_REMOTE_PORT}\""
     # Port is free, if exit code is not zero
     if [[ $? != 0 ]]; then
@@ -358,7 +358,7 @@ function check_remote_port_availability {
 }
 
 function size_calculation {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
   # Calculate the size of each input split file
   echo -e "${INFOCOLOR}Calculate the size of each input split file${NOCOLOR}"
   SPLIT_SIZE=$((INPUT_SIZE / NUM_JOBS))
@@ -411,7 +411,7 @@ function size_calculation {
 }
 
 function clone_file {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     # generate further spinoff variables
     INPUT_FILE_NAME=$(basename "${INPUT}")
 
@@ -501,7 +501,7 @@ function clone_file {
                 fi
             done
 
-            echo "REMOTE COMMAND: nc -N -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD}"
+            echo -e "${INFOCOLOR}REMOTE COMMAND: nc -N -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD}${NOCOLOR}"
             execute_remote_background_command "nc -N -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD}"
     
             INPUT_CMD_REMOTE_EXTENSION="nc ${REMOTE_HOST} ${CURRENT_REMOTE_PORT}"
@@ -517,7 +517,7 @@ function clone_file {
 }
 
 function clone_block {
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}"
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     echo "Prüfe Klon-Parameter."
     # Wird wahrscheinlich nicht mehr gebraucht:
     #if [[ "${INPUT_FILE_TYPE}" != "block special"* ]]; then
