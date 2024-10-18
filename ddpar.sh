@@ -204,6 +204,24 @@ function is_ssh_socket_alive {
     return $?
 }
 
+function execute_command {
+	# This function should preceed every command that could be executed remotely
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
+	local command=$@
+	
+	if [ -z "${command}" ]; then
+		echo -e "${ERRORCOLOR}Fehler: Kein Befehl zum Ausführen angegeben.${NOCOLOR}"
+		return 1
+	fi
+	if [ $REMOTE -eq 1 ]; then
+		# Führe den Befehl auf dem Remote-System aus (via SSH)
+		ssh -S "${SSH_SOCKET_PATH}" "${REMOTE_HOST}" "${command}"
+	else
+		# Führe den Befehl lokal aus
+		"${command}"
+	fi
+}
+
 function execute_remote_command {
 	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     local command=$1
@@ -538,33 +556,36 @@ function clone_block {
     echo -e "${SUCCESSCOLOR}Klonvorgang kann durchgeführt werden.${NOCOLOR}"
     echo -e "${SUCCESSCOLOR}Starte die Prozesse ...${NOCOLOR}"
     for ((PART_NUM=0; PART_NUM<${NUM_JOBS}; PART_NUM++)); do
-    # Build individual subcommands and concatinate, if enabled
-    START=$((PART_NUM * SPLIT_SIZE))
-    INPUT_CMD="dd if=${INPUT} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
-    FULL_CMD="${INPUT_CMD}"
-    # ToDo: create Metadata directory and write Checksum-Files
-    #if [ $CHECKSUM -eq 1 ]; then
-    #  CHECKSUM_CMD="tee >(sha256sum > ${OUTPUT_FILE}${PART_NUM}.sha256)"
-    #  FULL_CMD="${FULL_CMD} | $CHECKSUM_CMD"
-    #fi
-    # ToDo: Compression only makes sense when transfering to remote location, implement later (this is just a copy from backup mode)
-    #if [ $COMPRESSION -eq 1 ]; then
-    #    if [ $PART_NUM -eq 0 ]; then
-    #        #echo "Compression is enabled with \$COMPRESSION_LEVEL ${COMPRESSION_LEVEL}"
-    #        # Append compression and its level to metadata file
-    #        echo "COMPRESSION=${COMPRESSION}" >> ${METADATA_FILE}
-    #        echo "COMPRESSION_LEVEL=${COMPRESSION_LEVEL}" >> ${METADATA_FILE}
-    #    fi
-    #    COMPRESSION_CMD="gzip -${COMPRESSION_LEVEL} > ${OUTPUT_FILE}${PART_NUM}.gz"
-    #    FULL_CMD="${FULL_CMD} | $COMPRESSION_CMD &"
-    #else
-    #    OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
-    #    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
-    #fi
-    OUTPUT_CMD="dd of=${OUTPUT} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
-    FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
-    echo "${INFOCOLOR}${FULL_CMD}${NOCOLOR}"
-    eval ${FULL_CMD}
+		# Build individual subcommands and concatinate, if enabled
+		START=$((PART_NUM * SPLIT_SIZE))
+		INPUT_CMD="dd if=${INPUT} bs=${BLOCKSIZEBYTES} count=$((SPLIT_SIZE / ${BLOCKSIZEBYTES})) skip=$((START / ${BLOCKSIZEBYTES}))"
+		FULL_CMD="${INPUT_CMD}"
+		
+		# ToDo: create Metadata directory and write Checksum-Files
+		#if [ $CHECKSUM -eq 1 ]; then
+		#  CHECKSUM_CMD="tee >(sha256sum > ${OUTPUT_FILE}${PART_NUM}.sha256)"
+		#  FULL_CMD="${FULL_CMD} | $CHECKSUM_CMD"
+		#fi
+		# ToDo: Compression only makes sense when transfering to remote location, implement later (this is just a copy from backup mode)
+		#if [ $COMPRESSION -eq 1 ]; then
+		#    if [ $PART_NUM -eq 0 ]; then
+		#        #echo "Compression is enabled with \$COMPRESSION_LEVEL ${COMPRESSION_LEVEL}"
+		#        # Append compression and its level to metadata file
+		#        echo "COMPRESSION=${COMPRESSION}" >> ${METADATA_FILE}
+		#        echo "COMPRESSION_LEVEL=${COMPRESSION_LEVEL}" >> ${METADATA_FILE}
+		#    fi
+		#    COMPRESSION_CMD="gzip -${COMPRESSION_LEVEL} > ${OUTPUT_FILE}${PART_NUM}.gz"
+		#    FULL_CMD="${FULL_CMD} | $COMPRESSION_CMD &"
+		#else
+		#    OUTPUT_CMD="dd of=${OUTPUT_FILE}${PART_NUM}.part bs=${BLOCKSIZEBYTES}"
+		#    FULL_CMD="${FULL_CMD} | $OUTPUT_CMD &"
+		#fi
+		
+		OUTPUT_CMD="dd of=${OUTPUT} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
+		FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
+		
+		echo "${INFOCOLOR}${FULL_CMD}${NOCOLOR}"
+		eval ${FULL_CMD}
     done
 }
 
