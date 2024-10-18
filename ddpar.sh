@@ -207,7 +207,7 @@ function is_ssh_socket_alive {
 function execute_command {
 	# This function should preceed every command that could be executed remotely
 	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
-	local command=$@
+	local command=$1
 	
 	if [ -z "${command}" ]; then
 		echo -e "${ERRORCOLOR}Fehler: Kein Befehl zum Ausführen angegeben.${NOCOLOR}"
@@ -320,7 +320,26 @@ function input_analysis {
   fi
 }
 
+function output_analysis {
+	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
+	# Determine the type of the output file
+	echo -e "${INFOCOLOR}Analysiere OUTPUT${NOCOLOR}"
+	OUTPUT_FILE_TYPE=$(execute_command "file -b ${OUTPUT}")
+	
+	# Use the appropriate command to calculate the size of the output file
+	echo "\$OUTPUT_FILE_TYPE: ${OUTPUT_FILE_TYPE}"
+	if [[ "${OUTPUT_FILE_TYPE}" == "block special"* ]]; then
+		OUTPUT_SIZE=$(execute_command "blockdev --getsize64 ${OUTPUT}")
+		echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
+	else
+		OUTPUT_SIZE=$(execute_command "stat -c %s ${OUTPUT}")
+		echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
+	fi
+	echo -e "${INFOCOLOR}${FUNCNAME[0]} abgeschlossen${NOCOLOR}"
+}
+
 function local_output_analysis {
+	# Deprecated function, replaced by "output_analysis". Should be removed in the future.
 	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
   # Determine the type of the output file
   echo -e "${INFOCOLOR}Analysiere OUTPUT${NOCOLOR}"
@@ -335,9 +354,11 @@ function local_output_analysis {
     OUTPUT_SIZE=$(stat -c %s ${OUTPUT})
     echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
   fi
+  echo -e "${INFOCOLOR}${FUNCNAME[0]} abgeschlossen${NOCOLOR}"
 }
 
 function remote_output_analysis {
+	# Deprecated function, replaced by "output_analysis". Should be removed in the future.
 	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
     ## The following lines are copied from local_output_analysis function and need to be put into a function
     echo -e "${INFOCOLOR}Analysiere Remote OUTPUT${NOCOLOR}"
@@ -352,7 +373,7 @@ function remote_output_analysis {
         OUTPUT_SIZE=$(execute_remote_command "stat -c %s ${OUTPUT}")
         echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
     fi
-    echo -e "${INFOCOLOR}Remote Output Analyse abgeschlossen${NOCOLOR}"
+    echo -e "${INFOCOLOR}${FUNCNAME[0]} abgeschlossen${NOCOLOR}"
 }
 
 function remote_port_generation {
@@ -439,7 +460,7 @@ function clone_file {
         OUTPUT_PATH="${OUTPUT}/${INPUT_FILE_NAME}"
     elif [[ "${OUTPUT_FILE_TYPE}" == *"No such file or directory"* ]]; then
         if [ ! -z "$FORCE" ]; then
-            if mkdir -p "${OUTPUT}"; then
+            if execute_command mkdir -p "${OUTPUT}"; then
                 OUTPUT_PATH="${OUTPUT}"
                 echo "Directory ${OUTPUT} created successfully."
             else
@@ -450,7 +471,7 @@ function clone_file {
             echo -e "${REQUESTCOLOR}${OUTPUT} does not exist, should this directory be created? (y/N)${NOCOLOR}"
             read answer
             if [ "$answer" == "y" ]; then
-                if mkdir -p "${OUTPUT}"; then
+                if execute_command mkdir -p "${OUTPUT}"; then
                     OUTPUT_PATH="${OUTPUT}"
                     echo -e "${SUCCESSCOLOR}Directory ${OUTPUT} created successfully.${NOCOLOR}"
                 else
@@ -521,6 +542,39 @@ function clone_file {
 
             echo -e "${INFOCOLOR}REMOTE COMMAND: nc -N -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD}${NOCOLOR}"
             execute_remote_background_command "nc -N -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD}"
+			
+			# Check if execute_remote_background_command is running
+			MAX_ATTEMPTS=3 # Anzahl der maximalen Versuche
+			SLEEP_INTERVAL=1 # Wartezeit zwischen den Versuchen in Sekunden
+			ATTEMPT=1	# Zähler für die aktuellen Versuche
+			
+			# Schleife, die den Status des Ports überprüft
+			while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+				echo -e "${INFOCOLOR}Checking if remote process is running on port ${CURRENT_REMOTE_PORT} (attempt $ATTEMPT)...${NOCOLOR}"
+				
+				# Remote-Befehl zum Prüfen, ob der Prozess auf dem Port läuft
+				if execute_remote_command "ss -tuln | grep -q :${CURRENT_REMOTE_PORT}"; then
+					echo -e "${INFOCOLOR}Process found on port ${CURRENT_REMOTE_PORT}. Exiting loop.${NOCOLOR}"
+					break
+				else
+					echo -e "${INFOCOLOR}Process not found on port ${CURRENT_REMOTE_PORT}.${NOCOLOR}"
+				fi
+			
+				# Erhöhe den Versuchszähler
+				ATTEMPT=$((ATTEMPT + 1))
+			
+				# Warte eine Sekunde vor dem nächsten Versuch, falls es noch Versuche gibt
+				if [ $ATTEMPT -le $MAX_ATTEMPTS ]; then
+					sleep $SLEEP_INTERVAL
+				fi
+			done
+			
+			# Wenn nach allen Versuchen der Prozess nicht gefunden wurde, mit Fehler beenden
+			if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+				echo -e "${INFOCOLOR}Process did not start on port ${CURRENT_REMOTE_PORT} after $MAX_ATTEMPTS attempts."
+				INTERNAL_EXITCODE=2
+				return 1
+			fi
     
             INPUT_CMD_REMOTE_EXTENSION="nc ${REMOTE_HOST} ${CURRENT_REMOTE_PORT}"
             FULL_CMD="${FULL_CMD} | ${INPUT_CMD_REMOTE_EXTENSION} &"
@@ -528,8 +582,8 @@ function clone_file {
             FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
         fi
 
-        echo "${INFOCOLOR}${FULL_CMD}${NOCOLOR}"
-        eval ${FULL_CMD}
+        echo -e "${INFOCOLOR}${FULL_CMD}${NOCOLOR}"
+        eval "${FULL_CMD}"
     
     done
 }
@@ -609,11 +663,13 @@ if [ $REMOTE -eq 1 ]; then
         
         # Determine the type of the output file
     fi
-    remote_output_analysis
+    #remote_output_analysis
+	output_analysis
 else
     # local Output analysis
     check_commands_availability
     local_output_analysis
+	#output_analysis
 fi
 
 
