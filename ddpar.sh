@@ -460,7 +460,7 @@ function clone_file {
         OUTPUT_PATH="${OUTPUT}/${INPUT_FILE_NAME}"
     elif [[ "${OUTPUT_FILE_TYPE}" == *"No such file or directory"* ]]; then
         if [ ! -z "$FORCE" ]; then
-            if execute_command mkdir -p "${OUTPUT}"; then
+            if execute_command 'mkdir -p "${OUTPUT}"'; then
                 OUTPUT_PATH="${OUTPUT}"
                 echo "Directory ${OUTPUT} created successfully."
             else
@@ -471,7 +471,7 @@ function clone_file {
             echo -e "${REQUESTCOLOR}${OUTPUT} does not exist, should this directory be created? (y/N)${NOCOLOR}"
             read answer
             if [ "$answer" == "y" ]; then
-                if execute_command mkdir -p "${OUTPUT}"; then
+                if execute_command 'mkdir -p "${OUTPUT}"'; then
                     OUTPUT_PATH="${OUTPUT}"
                     echo -e "${SUCCESSCOLOR}Directory ${OUTPUT} created successfully.${NOCOLOR}"
                 else
