@@ -576,7 +576,7 @@ function clone_file {
 				return 1
 			fi
     
-            INPUT_CMD_REMOTE_EXTENSION="nc ${REMOTE_HOST} ${CURRENT_REMOTE_PORT}"
+            INPUT_CMD_REMOTE_EXTENSION="nc ${REMOTE_HOST#*@} ${CURRENT_REMOTE_PORT}"
             FULL_CMD="${FULL_CMD} | ${INPUT_CMD_REMOTE_EXTENSION} &"
         else
             FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
@@ -636,9 +636,67 @@ function clone_block {
 		#fi
 		
 		OUTPUT_CMD="dd of=${OUTPUT} bs=${BLOCKSIZEBYTES} seek=$((START / ${BLOCKSIZEBYTES}))"
-		FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
 		
-		echo "${INFOCOLOR}${FULL_CMD}${NOCOLOR}"
+		if [ $REMOTE -eq 1 ]; then
+            # Generate and check remote ports
+            if [ -z ${REMOTE_PORT} ]; then
+                remote_port_generation
+            fi
+			CURRENT_REMOTE_PORT=$(( REMOTE_PORT + PART_NUM ))
+            # Schleife zum Generieren eines freien Ports
+            while true; do
+                if check_remote_port_availability; then
+                    break
+                else
+                    echo -e "${INFOCOLOR}Port ${CURRENT_REMOTE_PORT} on remote machine already in use, generate new port.${NOCOLOR}"
+                    remote_port_generation
+                    CURRENT_REMOTE_PORT=$(( REMOTE_PORT + PART_NUM ))
+                fi
+            done
+
+            echo -e "${INFOCOLOR}REMOTE COMMAND: nc -N -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD}${NOCOLOR}"
+            execute_remote_background_command "nc -N -l ${CURRENT_REMOTE_PORT} | ${OUTPUT_CMD}"
+			
+			# Check if execute_remote_background_command is running
+			MAX_ATTEMPTS=3 # Anzahl der maximalen Versuche
+			SLEEP_INTERVAL=1 # Wartezeit zwischen den Versuchen in Sekunden
+			ATTEMPT=1	# Zähler für die aktuellen Versuche
+			
+			# Schleife, die den Status des Ports überprüft
+			while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+				echo -e "${INFOCOLOR}Checking if remote process is running on port ${CURRENT_REMOTE_PORT} (attempt $ATTEMPT)...${NOCOLOR}"
+				
+				# Remote-Befehl zum Prüfen, ob der Prozess auf dem Port läuft
+				if execute_remote_command "ss -tuln | grep -q :${CURRENT_REMOTE_PORT}"; then
+					echo -e "${INFOCOLOR}Process found on port ${CURRENT_REMOTE_PORT}. Exiting loop.${NOCOLOR}"
+					break
+				else
+					echo -e "${INFOCOLOR}Process not found on port ${CURRENT_REMOTE_PORT}.${NOCOLOR}"
+				fi
+			
+				# Erhöhe den Versuchszähler
+				ATTEMPT=$((ATTEMPT + 1))
+			
+				# Warte eine Sekunde vor dem nächsten Versuch, falls es noch Versuche gibt
+				if [ $ATTEMPT -le $MAX_ATTEMPTS ]; then
+					sleep $SLEEP_INTERVAL
+				fi
+			done
+			
+			# Wenn nach allen Versuchen der Prozess nicht gefunden wurde, mit Fehler beenden
+			if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+				echo -e "${INFOCOLOR}Process did not start on port ${CURRENT_REMOTE_PORT} after $MAX_ATTEMPTS attempts."
+				INTERNAL_EXITCODE=2
+				return 1
+			fi
+    
+            INPUT_CMD_REMOTE_EXTENSION="nc ${REMOTE_HOST#*@} ${CURRENT_REMOTE_PORT}"
+            FULL_CMD="${FULL_CMD} | ${INPUT_CMD_REMOTE_EXTENSION} &"
+        else
+            FULL_CMD="${FULL_CMD} | ${OUTPUT_CMD} &"
+        fi
+		
+		echo -e "${INFOCOLOR}${FULL_CMD}${NOCOLOR}"
 		eval ${FULL_CMD}
     done
 }
