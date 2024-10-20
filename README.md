@@ -93,7 +93,7 @@ Attempting scripted parallel dd execution.
 - ddpar.sh:
   - Add option to give a backup a custom BASE_NAME
   - Add size check for local clone_file
-  - Remove deprecated functions (currently local and remote output analysis)
+  - Remove deprecated functions (currently none)
 - ddpar-check.sh:
   - Add if-statement for checking if a backup as been created with a sha256sum
 - ddpar-restore.sh:

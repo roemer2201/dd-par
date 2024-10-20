@@ -218,7 +218,7 @@ function execute_command {
 		ssh -S "${SSH_SOCKET_PATH}" "${REMOTE_HOST}" "${command}"
 	else
 		# Führe den Befehl lokal aus
-		"${command}"
+		${command}
 	fi
 }
 
@@ -336,44 +336,6 @@ function output_analysis {
 		echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
 	fi
 	echo -e "${INFOCOLOR}${FUNCNAME[0]} abgeschlossen${NOCOLOR}"
-}
-
-function local_output_analysis {
-	# Deprecated function, replaced by "output_analysis". Should be removed in the future.
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
-  # Determine the type of the output file
-  echo -e "${INFOCOLOR}Analysiere OUTPUT${NOCOLOR}"
-  OUTPUT_FILE_TYPE=$(file -b ${OUTPUT})
-  
-  # Use the appropriate command to calculate the size of the output file
-  echo "\$OUTPUT_FILE_TYPE: ${OUTPUT_FILE_TYPE}"
-  if [[ "${OUTPUT_FILE_TYPE}" == "block special"* ]]; then
-    OUTPUT_SIZE=$(blockdev --getsize64 ${OUTPUT})
-    echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
-  else
-    OUTPUT_SIZE=$(stat -c %s ${OUTPUT})
-    echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
-  fi
-  echo -e "${INFOCOLOR}${FUNCNAME[0]} abgeschlossen${NOCOLOR}"
-}
-
-function remote_output_analysis {
-	# Deprecated function, replaced by "output_analysis". Should be removed in the future.
-	[ "$DEBUG" -eq 1 ] && echo -e "${DEBUGCOLOR}[DEBUG] Funktion ${FUNCNAME[0]} aufgerufen${NOCOLOR}" >&2
-    ## The following lines are copied from local_output_analysis function and need to be put into a function
-    echo -e "${INFOCOLOR}Analysiere Remote OUTPUT${NOCOLOR}"
-    OUTPUT_FILE_TYPE=$(execute_remote_command "file -b ${OUTPUT}")
-    
-    # Use the appropriate command to calculate the size of the output file
-    echo "\$OUTPUT_FILE_TYPE: ${OUTPUT_FILE_TYPE}"
-    if [[ "${OUTPUT_FILE_TYPE}" == "block special"* ]]; then
-        OUTPUT_SIZE=$(execute_remote_command "blockdev --getsize64 ${OUTPUT}")
-        echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
-    else
-        OUTPUT_SIZE=$(execute_remote_command "stat -c %s ${OUTPUT}")
-        echo "\$OUTPUT_SIZE = $OUTPUT_SIZE"
-    fi
-    echo -e "${INFOCOLOR}${FUNCNAME[0]} abgeschlossen${NOCOLOR}"
 }
 
 function remote_port_generation {
@@ -721,15 +683,11 @@ if [ $REMOTE -eq 1 ]; then
         
         # Determine the type of the output file
     fi
-    #remote_output_analysis
-	output_analysis
 else
     # local Output analysis
     check_commands_availability
-    local_output_analysis
-	#output_analysis
 fi
-
+output_analysis
 
 
 echo -e "${SUCCESSCOLOR}Initialisierung erfolgreich${NOCOLOR}"
