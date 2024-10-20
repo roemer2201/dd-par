@@ -23,13 +23,14 @@ Attempting scripted parallel dd execution.
 | |state|
 |-|-|
 | establish_ssh_connection | :heavy_check_mark: |
+| execute_command | :heavy_check_mark: |
 | execute_remote_command | :heavy_check_mark: |
+| execute_remote_background_command | :heavy_check_mark: |
 | close_ssh_connection | :heavy_check_mark: |
 | check_remote_command_availability | :stop_sign: |
 | remote_port_generation | :heavy_check_mark: |
 | check_remote_port_availability | :heavy_check_mark: |
-| execute_remote_background_command | :heavy_check_mark: |
-| remote_output_analysis | :heavy_check_mark: |
+| output_analysis | :heavy_check_mark: |
 | remote_cloning_commands | :gear: |
 | remote_backup_commands | :stop_sign: |
 
@@ -39,9 +40,9 @@ Attempting scripted parallel dd execution.
 
 ### remote - netcat
 #### uncompressed 
-| | clone | | backup (check) | restore (check) |
+| | clone (check) | | backup (check) | restore (check) |
 |-|----------|-|----------|----------|
-| block dev | :stop_sign: (:stop_sign:) | | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
+| block dev | :heavy_check_mark: (:stop_sign:) | | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 | file | :heavy_check_mark: (:stop_sign:) | | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 
 #### local [de]compression
@@ -59,34 +60,33 @@ Attempting scripted parallel dd execution.
 #### compressed transfer (compression+decompresion before and after transfer)
 | | clone |
 |----------|----------|
-| block dev | :stop_sign: (:stop_sign:) |
-| file | :stop_sign: (:stop_sign:) |
+| block dev | :stop_sign: |
+| file | :stop_sign: |
 
 <br>
-
+<!--
+### remote - ???
 #### uncompressed 
 | | clone | | backup (check) | restore (check) |
 |-|----------|-|----------|----------|
 | block dev | :stop_sign: (:stop_sign:) | | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 | file | :stop_sign: (:stop_sign:) | | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
-
 #### local [de]compression
 | | backup gzip (check) | restore gzip (check) |
 |-|----------|----------|
 | block dev | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 | file | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
-
 #### remote [de]compression
 | | backup gzip (check) | restore gzip (check) |
 |-----------|----------|----------|
 | block dev | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
 | file | :stop_sign: (:stop_sign:) | :stop_sign: (:stop_sign:) |
-
 #### compressed transfer (compression+decompresion before and after transfer)
 | | clone |
 |----------|----------|
 | block dev | :stop_sign: (:stop_sign:) |
 | file | :stop_sign: (:stop_sign:) |
+-->
 
 ## To Do
 - check read/write permissions for $SOURCE, $BACKUP_BASE and $DESTINATION
